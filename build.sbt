@@ -3,7 +3,7 @@ val circeVersion = "0.14.10"
 val log4catsVersion = "2.7.0"
 
 lazy val formService = (project in file(".")).settings(
-  name := "FormService",
+  name := "Formulon",
   version := "0.1",
   scalaVersion := "2.13.15",
   organization := "fr.konexii",

@@ -37,7 +37,7 @@ object Main extends IOApp {
           .map(_ => ExitCode(1))
     }
   def infos(conf: Valid): IO[Unit] =
-    IO.delay(s"figlet \"Form Service\"".!) >>
+    IO.delay(s"figlet \"Formulon\"".!) >>
       IO.delay(println(s"port: ${conf.port}")) >>
       IO.delay(println(s"ip: ${conf.ip}"))
 
