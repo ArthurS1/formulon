@@ -3,6 +3,4 @@ package domain
 
 import java.util.UUID
 
-case class Schema(
-  name: String,
-)
+case class Entity[T](id: UUID, data: T)

@@ -5,6 +5,6 @@ package repositories
 import fr.konexii.form._
 
 trait Schema[F[_]] {
-  def get(id: String): F[Option[domain.Schema]]
-  def save(schema: domain.Schema): F[domain.Schema]
+  def get(id: String): F[Option[domain.Entity[domain.Schema]]]
+  def save(schema: domain.Entity[domain.Schema]): F[domain.Entity[domain.Schema]]
 }
