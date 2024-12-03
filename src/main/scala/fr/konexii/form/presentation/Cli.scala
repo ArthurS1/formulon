@@ -12,7 +12,7 @@ object Cli {
       val ip: String = "0.0.0.0",
       val help: Boolean = false,
       val jdbcUrl: String = "jdbc:postgresql://localhost/konexii",
-      val dbUser: String = "form",
+      val dbUser: String = "server",
       val dbPass: String = "test"
   ) extends Conf
 
