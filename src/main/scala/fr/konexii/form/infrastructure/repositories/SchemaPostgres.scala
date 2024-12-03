@@ -20,10 +20,8 @@ class SchemaPostgres[F[_]](db: Database)(implicit
     def id = column[UUID]("id", options = O.PrimaryKey)
     def name = column[String]("name")
     def * =
-      (id, name) <> (
-        { case (id, s) => Entity(id, Schema(s)) },
-        (e: Entity[Schema]) => Some((e.id, e.data.name))
-      )
+      (id, name) <> ({ case (id, s) => Entity(id, Schema(s)) },
+      (e: Entity[Schema]) => Some((e.id, e.data.name)))
   }
 
   lazy val schemas = TableQuery[Schemas]
@@ -39,12 +37,29 @@ class SchemaPostgres[F[_]](db: Database)(implicit
 
   def save(schema: Entity[Schema]): F[Entity[Schema]] =
     F.fromFuture(
-      (
-        F.delay(
-          db.run(
-            schemas.+=(schema).void
-          )
+      F.delay(
+        db.run(
+          schemas.+=(schema).void
         )
       )
     ) >> F.pure(schema)
+
+  def delete(id: String): F[Unit] =
+    F.fromFuture(
+      F.delay(
+        db.run(
+          schemas.filter(_.id === UUID.fromString(id)).delete.void
+        )
+      )
+    )
+
+  def update(schema: Entity[Schema]): F[Entity[Schema]] =
+    F.fromFuture(
+      F.delay(
+        db.run(
+          schemas.filter(_.id === schema.id).update(schema)
+        )
+      )
+    ) >> F.pure(schema)
+
 }

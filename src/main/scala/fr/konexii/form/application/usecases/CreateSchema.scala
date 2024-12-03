@@ -1,4 +1,5 @@
 package fr.konexii.form
+package application
 package usecases
 
 import cats._

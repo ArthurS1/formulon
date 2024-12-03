@@ -1,4 +1,6 @@
-package fr.konexii.form.usecases
+package fr.konexii.form
+package application
+package usecases
 
 import cats.implicits._
 import cats._

@@ -15,8 +15,9 @@ import io.circe._
 import io.circe.syntax._
 import io.circe.generic.auto._
 
-import fr.konexii.form._
-import fr.konexii.form.application.Repositories
+import java.util.UUID
+
+import fr.konexii.form.application._
 
 class Routes(repositories: Repositories[IO]) {
 
@@ -34,6 +35,14 @@ class Routes(repositories: Repositories[IO]) {
           schema <- new usecases.ReadSchema[IO](repositories).execute(id)
           response <- Ok(schema.asJson)
         } yield response
+      case req @ PUT -> Root / "schema" / id =>
+        for {
+          update <- req.as[domain.Entity[domain.Schema]]
+          updatedSchema <- new usecases.UpdateSchema[IO](repositories).execute(update)
+          response <- Ok(updatedSchema.asJson)
+        } yield response
+      case DELETE -> Root / "schema" / id =>
+        new usecases.DeleteSchema[IO](repositories).execute(id) >> Ok()
       case GET -> Root / "ping" => Ok("pong")
     }
 

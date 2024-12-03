@@ -28,12 +28,12 @@ It is provided under a non-commercial license meaning it can only be used for ed
 
 *temporary list of features to be implemented*
 
-- [ ] CRUD form schemas for administrators
+- [X] CRUD form schemas for administrators
 - [ ] maintain an history of the schema versions
-- [ ] make sure an organization can only edit their schema
 - [ ] serve the forms
 - [ ] store form answers related to the schema version
 - [ ] serve form answers to the responsible organization
+- [ ] make sure an organization can only edit their schema
 - [ ] advertise the different kinds of schema blocks available
 
 ## **Getting Started**
