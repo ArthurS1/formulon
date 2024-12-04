@@ -1,5 +1,4 @@
-target
-*.class
+target/
 .bsp
 .bloop
 .metals
