@@ -1,10 +1,61 @@
 package fr.konexii.form
 package domain
 
+import cats.Monad
+import cats.implicits._
+import cats.data._
+import cats.data.Validated._
+import cats.effect.kernel.Clock
+import cats.effect.std.UUIDGen
 import java.util.UUID
 
-case class Schema(
-  name: String,
-  /* versions: List[Entity[SchemaVersion]],
-  active: Entity[SchemaVersion] */
-)
+final case class Schema(
+    name: String,
+    versions: List[Entity[SchemaVersion]] = List(),
+    active: Option[Entity[SchemaVersion]] = None
+) {
+
+  def unsetActiveVersion(): Schema =
+    this.copy(active = None)
+
+  def setActiveVersion(id: UUID): Either[Throwable, Schema] =
+    for {
+      version <- versions
+        .find(entity => entity.id == id)
+        .toRight(new Exception(s"Could not find schema version with id $id"))
+      schema = this.copy(active = Some(version))
+    } yield schema
+
+  def addNewVersion[F[_]: Clock: Monad: UUIDGen](
+      content: Entity[Block]
+  ): F[Schema] =
+    for {
+      sv <- SchemaVersion(content)
+      entity <- Entity(sv)
+    } yield this.copy(versions = entity :: versions)
+
+}
+
+object Schema {
+
+  def apply(name: String): ValidatedNec[Throwable, Schema] =
+    (validateName(name.strip)).map(Schema)
+
+  def validateName(name: String): ValidatedNec[Throwable, String] =
+    isNotBlank(name) *> isNotMoreThan(80, name) *> isOnlyAlphasAndDigits(name)
+
+  def isNotBlank(s: String): ValidatedNec[Throwable, String] =
+    if (s.isEmpty()) (new Exception("is empty")).invalidNec else s.validNec
+
+  def isNotMoreThan(nbChar: Int, s: String) =
+    if (s.size > nbChar)
+      (new Exception(s"is too wide (max $nbChar characters)")).invalidNec
+    else s.validNec
+
+  def isOnlyAlphasAndDigits(s: String) =
+    if (s.matches("([A-Za-z0-9 ])*"))
+      s.validNec
+    else
+      (new Exception("should contain only letters and digits")).invalidNec
+
+}

@@ -1,4 +1,5 @@
 package fr.konexii.form
+package domain
 
 /*
  * This part is still work in progress.
@@ -8,14 +9,13 @@ package fr.konexii.form
 
 // A block is any element of the form tree
 
-trait Block {
-  def id: String
-}
+sealed trait Block
 
 // A condition block creates a new branch in the tree based on a condition
 
+/*
+ * I do not know what is happening, metals looses its shit when I uncomment this
 case class Branch(
-    id: String,
     condition: ConditionalOperator,
     ifTrue: Block,
     ifFalse: Block
@@ -65,22 +65,20 @@ case class StringListLiteral(value: List[String]) extends ConditionalValue
 case class Property(blockId: String) extends ConditionalValue
 
 // The end block marks the end of the tree
+*/
 
-case class End(
-    id: String
-) extends Block
+case class End() extends Block
 
+/*
 // A group holds and presents Fields
 
 case class VisualGroup(
-    id: String,
     fields: List[Field]
 ) extends Block
 
 // A statement block is a single field
 
 case class Field(
-    id: String,
     title: String,
     required: Boolean,
     attributes: Attribute,
@@ -107,4 +105,4 @@ case class SingleChoice(
 
 case class MultipleChoice(
     choices: List[String]
-) extends Attribute
+) extends Attribute*/
