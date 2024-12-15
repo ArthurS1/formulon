@@ -2,8 +2,8 @@ package fr.konexii.form
 package domain
 
 import cats.ApplicativeThrow
-import cats.effect.kernel.Clock
-import cats.MonadThrow
+import cats.effect.kernel.Sync
+import cats.syntax.all._
 import java.time.DateTimeException
 import java.time.Instant
 import java.time.LocalDateTime
@@ -19,21 +19,17 @@ final case class SchemaVersion(
 
 object SchemaVersion {
 
-  /* Cannot do better for now, see https://discord.com/channels/632277896739946517/632278585700384799/1317833443564064802*/
-
   def apply[F[_]](
       content: Entity[Block]
-  )(implicit G: Clock[F], F: MonadThrow[F]): F[SchemaVersion] = {
-    val localDateTime: F[LocalDateTime] =
-      F.flatMap(G.realTime)((fd: FiniteDuration) =>
-        localDateTimeFromMilis(fd.toMillis)
-      )
-    F.map(localDateTime)(SchemaVersion(_, content))
-  }
+  )(implicit F: Sync[F]): F[SchemaVersion] =
+    for {
+      fd <- F.realTime
+      ldt <- localDateTimeFromMilis(fd.toMillis)
+    } yield SchemaVersion(ldt, content)
 
   private def localDateTimeFromMilis[F[_]](
       milis: Long
-  )(implicit F: MonadThrow[F]): F[LocalDateTime] =
+  )(implicit F: ApplicativeThrow[F]): F[LocalDateTime] =
     F.catchOnly[DateTimeException](
       LocalDateTime.ofInstant(Instant.ofEpochMilli(milis), ZoneOffset.UTC)
     )
