@@ -1,13 +1,12 @@
 package fr.konexii.form
 package domain
 
-import cats.Monad
 import cats.implicits._
 import cats.data._
 import cats.data.Validated._
-import cats.effect.kernel.Clock
 import cats.effect.std.UUIDGen
 import java.util.UUID
+import cats.effect.kernel.Sync
 
 final case class Schema(
     name: String,
@@ -26,7 +25,7 @@ final case class Schema(
       schema = this.copy(active = Some(version))
     } yield schema
 
-  def addNewVersion[F[_]: Clock: Monad: UUIDGen](
+  def addNewVersion[F[_]: Sync : UUIDGen](
       content: Entity[Block]
   ): F[Schema] =
     for {
