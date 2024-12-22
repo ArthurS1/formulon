@@ -6,6 +6,8 @@ package presentation
  */
 
 import cats.effect._
+import cats._
+import cats.syntax.all._
 
 import org.http4s._
 import org.http4s.dsl.io._
@@ -23,7 +25,17 @@ import fr.konexii.form.domain.Entity
 
 class Routes(repositories: Repositories[IO]) {
 
-  val routes = HttpRoutes
+  val infrastructureRoutes = HttpRoutes
+    .of[IO] { case GET -> Root / "ping" =>
+      Ok("pong")
+    }
+
+  val contentRoutes = HttpRoutes
+    .of[IO] { case req @ POST -> Root / "schema" / id / "content" =>
+      Ok("")
+    }
+
+  val schemaRoutes = HttpRoutes
     .of[IO] {
       case req @ POST -> Root / "schema" =>
         for {
@@ -46,7 +58,8 @@ class Routes(repositories: Repositories[IO]) {
         } yield response
       case DELETE -> Root / "schema" / id =>
         new usecases.DeleteSchema[IO](repositories).execute(id) >> Ok()
-      case GET -> Root / "ping" => Ok("pong")
     }
+
+  val routes = schemaRoutes <+> contentRoutes <+> infrastructureRoutes
 
 }

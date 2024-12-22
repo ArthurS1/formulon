@@ -9,8 +9,6 @@ package domain
 
 // A block is any element of the form tree
 
-sealed trait Block
-
 // A condition block creates a new branch in the tree based on a condition
 
 /*
@@ -66,8 +64,6 @@ case class Property(blockId: String) extends ConditionalValue
 
 // The end block marks the end of the tree
 */
-
-case class End() extends Block
 
 /*
 // A group holds and presents Fields
