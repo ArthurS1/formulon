@@ -18,6 +18,8 @@ import io.circe.generic.auto._
 import java.util.UUID
 
 import fr.konexii.form.application._
+import fr.konexii.form.application.dtos.SchemaRequest
+import fr.konexii.form.domain.Entity
 
 class Routes(repositories: Repositories[IO]) {
 
@@ -25,21 +27,22 @@ class Routes(repositories: Repositories[IO]) {
     .of[IO] {
       case req @ POST -> Root / "schema" =>
         for {
-          newSchema <- req.as[domain.Schema]
+          newSchema <- req.as[SchemaRequest]
           createdSchema <- new usecases.CreateSchema(repositories)
             .execute(newSchema)
-          response <- Ok(createdSchema.asJson)
+          response <- Ok("")
         } yield response
       case GET -> Root / "schema" / id =>
         for {
           schema <- new usecases.ReadSchema[IO](repositories).execute(id)
-          response <- Ok(schema.asJson)
+          response <- Ok("")
         } yield response
       case req @ PUT -> Root / "schema" / id =>
         for {
-          update <- req.as[domain.Entity[domain.Schema]]
-          updatedSchema <- new usecases.UpdateSchema[IO](repositories).execute(update)
-          response <- Ok(updatedSchema.asJson)
+          update <- req.as[Entity[SchemaRequest]]
+          updatedSchema <- new usecases.UpdateSchema[IO](repositories)
+            .execute(update)
+          response <- Ok("")
         } yield response
       case DELETE -> Root / "schema" / id =>
         new usecases.DeleteSchema[IO](repositories).execute(id) >> Ok()

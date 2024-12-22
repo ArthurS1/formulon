@@ -11,9 +11,6 @@ import fr.konexii.form.domain.Entity
 
 class ReadSchema[F[_]](repositories: Repositories[F])(implicit F: MonadThrow[F]) {
 
-  def execute(id: String): F[Entity[Schema]] = for {
-    schemaOption <- repositories.schema.get(id)
-    schema <- F.fromOption(schemaOption, new Exception("schema not found"))
-  } yield schema
+  def execute(id: String): F[Entity[Schema]] = repositories.schema.get(id)
 
 }

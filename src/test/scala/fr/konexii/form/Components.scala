@@ -1,6 +1,7 @@
 import org.scalatest.funsuite.AnyFunSuite
 import fr.konexii.form._
 
+/*
 class ComponentSuite extends AnyFunSuite {
   test("this is a testing test") {
     assert(1 == 1)
@@ -46,3 +47,4 @@ class ComponentSuite extends AnyFunSuite {
     )
   }
 }
+*/

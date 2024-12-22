@@ -18,6 +18,6 @@ final class PostgresRepositories[F[_]](
   lazy val db =
     Database.forURL(jdbcUrl, user, password, driver = "org.postgresql.Driver")
 
-  lazy val schema: application.repositories.Schema[F] =
-    new infrastructure.repositories.SchemaPostgres(db)
+  lazy val schema: application.repositories.SchemaAggregate[F] =
+    new infrastructure.postgres.SchemaAggregate(db)
 }

@@ -11,7 +11,7 @@ object Cli {
       val port: String = "8080",
       val ip: String = "0.0.0.0",
       val help: Boolean = false,
-      val jdbcUrl: String = "jdbc:postgresql://localhost/konexii",
+      val jdbcUrl: String = "jdbc:postgresql://localhost/formulon",
       val dbUser: String = "server",
       val dbPass: String = "test"
   ) extends Conf
@@ -48,7 +48,7 @@ USAGE: form-service [OPTIONS]
 OPTIONS:
 --port PORT         Port to listen from (default 8080)
 --ip IP             Ipv4 to listen from (default 0.0.0.0)
---jdbcurl URL       The JDBC url to connect to the postgres database (default jdbc:postgresql://localhost/konexii)
+--jdbcurl URL       The JDBC url to connect to the postgres database (default jdbc:postgresql://localhost/formulon)
 --db-user USER      The database user to connect as (default "form")
 --db-password PASS  The password for this database user (default "test")
 --help or -h        Shows this message
