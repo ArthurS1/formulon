@@ -11,7 +11,7 @@ final case class Entity[T](id: UUID, data: T)
 
 object Entity extends EntityInstances {
 
-  def apply[T, F[_]](
+  def generateUUID[T, F[_]](
       data: T
   )(implicit F: UUIDGen[F], G: Functor[F]): F[Entity[T]] =
     G.map(F.randomUUID)(Entity(_, data))

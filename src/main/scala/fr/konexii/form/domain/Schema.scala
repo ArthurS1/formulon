@@ -30,7 +30,7 @@ final case class Schema(
   ): F[Schema] =
     for {
       sv <- SchemaVersion(content)
-      entity <- Entity(sv)
+      entity <- Entity.generateUUID(sv)
     } yield this.copy(versions = entity :: versions)
 
 }
