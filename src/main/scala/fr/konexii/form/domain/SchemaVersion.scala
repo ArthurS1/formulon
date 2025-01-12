@@ -14,13 +14,13 @@ import fr.konexii.form.domain.Block
 
 final case class SchemaVersion(
     date: LocalDateTime,
-    content: Entity[Block]
+    content: Entity[SchemaTree[Entity[FieldWithMetadata]]]
 )
 
 object SchemaVersion {
 
   def apply[F[_]](
-      content: Entity[Block]
+      content: Entity[SchemaTree[Entity[FieldWithMetadata]]]
   )(implicit F: Sync[F]): F[SchemaVersion] =
     for {
       fd <- F.realTime

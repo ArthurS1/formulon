@@ -7,7 +7,7 @@ import cats.Functor
 import cats.effect.kernel.Sync
 import cats.effect.std.UUIDGen
 
-final case class Entity[T](id: UUID, data: T)
+final case class Entity[+T](id: UUID, data: T)
 
 object Entity extends EntityInstances {
 

@@ -26,7 +26,7 @@ final case class Schema(
     } yield schema
 
   def addNewVersion[F[_]: Sync : UUIDGen](
-      content: Entity[Block]
+      content: Entity[SchemaTree[Entity[FieldWithMetadata]]]
   ): F[Schema] =
     for {
       sv <- SchemaVersion(content)

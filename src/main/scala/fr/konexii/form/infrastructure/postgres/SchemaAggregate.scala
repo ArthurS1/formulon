@@ -13,7 +13,6 @@ import fr.konexii.form.application._
 import fr.konexii.form.domain.Entity
 import fr.konexii.form.domain.Schema
 import fr.konexii.form.domain.SchemaVersion
-import fr.konexii.form.domain.End
 import fr.konexii.form.domain.Block
 
 class SchemaAggregate[F[_]](db: Database)(implicit

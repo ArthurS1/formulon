@@ -37,9 +37,9 @@ object Main extends IOApp {
           .map(_ => ExitCode(1))
     }
   def infos(conf: Valid): IO[Unit] =
-    IO.delay(s"figlet \"Formulon\"".!) >>
-      IO.delay(println(s"port: ${conf.port}")) >>
-      IO.delay(println(s"ip: ${conf.ip}"))
+    IO.blocking(s"figlet \"Formulon\"".!) >>
+      IO.println(s"port: ${conf.port}") >>
+      IO.println(s"ip: ${conf.ip}")
 
   def optionParser(conf: Valid): IO[(Port, IpAddress)] =
     (Port.fromString(conf.port), IpAddress.fromString(conf.ip)) match {
