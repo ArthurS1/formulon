@@ -26,7 +26,7 @@ final case class Schema(
     } yield schema
 
   def addNewVersion[F[_]: Sync : UUIDGen](
-      content: Entity[SchemaTree[Entity[FieldWithMetadata]]]
+      content: SchemaTree[FieldWithMetadata]
   ): F[Schema] =
     for {
       sv <- SchemaVersion(content)
@@ -38,7 +38,7 @@ final case class Schema(
 object Schema {
 
   def apply(name: String): ValidatedNec[Throwable, Schema] =
-    (validateName(name.strip)).map(Schema)
+    (validateName(name.strip)).map(Schema(_))
 
   def validateName(name: String): ValidatedNec[Throwable, String] =
     isNotBlank(name) *> isNotMoreThan(80, name) *> isOnlyAlphasAndDigits(name)

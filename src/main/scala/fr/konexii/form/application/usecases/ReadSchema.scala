@@ -5,12 +5,17 @@ package usecases
 import cats.implicits._
 import cats._
 
+import java.util.UUID
+
 import fr.konexii.form.application.Repositories
-import fr.konexii.form.domain.Schema
-import fr.konexii.form.domain.Entity
+import fr.konexii.form.domain._
 
-class ReadSchema[F[_]](repositories: Repositories[F])(implicit F: MonadThrow[F]) {
+class ReadSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
 
-  def execute(id: String): F[Entity[Schema]] = repositories.schema.get(id)
+  def execute(id: String): F[Entity[Schema]] =
+    for {
+      uuid <- MonadThrow[F].catchNonFatal(UUID.fromString(id))
+      result <- repositories.schema.get(uuid)
+    } yield result
 
 }

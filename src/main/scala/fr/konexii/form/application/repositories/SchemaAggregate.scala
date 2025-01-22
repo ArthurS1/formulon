@@ -5,12 +5,14 @@ package repositories
 import fr.konexii.form.domain.Entity
 import fr.konexii.form.domain.Schema
 
+import java.util.UUID
+
 trait SchemaAggregate[F[_]] {
-  def get(id: String): F[Entity[Schema]]
+  def get(id: UUID): F[Entity[Schema]]
   def save(
       schema: Entity[Schema]
   ): F[Entity[Schema]]
-  def delete(id: String): F[Unit]
+  def delete(id: UUID): F[Unit]
   def update(
       schema: Entity[Schema]
   ): F[Entity[Schema]]

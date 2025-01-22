@@ -4,12 +4,12 @@ package dtos
 
 import fr.konexii.form.domain.Schema
 
-case class SchemaRequest(name: String)
+case class CreateSchemaRequest(name: String)
 
-object SchemaRequest {
+object CreateSchemaRequest {
 
   object implicits {
-    implicit def schemaRequestToSchema(schemaRequest: SchemaRequest): Schema =
+    implicit def schemaRequestToSchema(schemaRequest: CreateSchemaRequest): Schema =
       Schema(
         name = schemaRequest.name,
         versions = List(),

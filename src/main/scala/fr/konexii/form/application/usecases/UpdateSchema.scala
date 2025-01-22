@@ -2,16 +2,27 @@ package fr.konexii.form
 package application
 package usecases
 
+import cats._
+import cats.syntax.all._
+
+import java.util.UUID
+
 import fr.konexii.form.domain.Entity
 import fr.konexii.form.domain.Schema
-import cats.instances.list
 
-class UpdateSchema[F[_]](repositories: Repositories[F]) {
+class UpdateSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
   def execute(
-      update: Entity[dtos.SchemaRequest]
+      update: dtos.UpdateSchemaRequest,
+      id: String
   ): F[Entity[domain.Schema]] = {
-    repositories.schema.update(
-      ???
-    )
+    for {
+      uuid <- MonadThrow[F].catchNonFatal(UUID.fromString(id))
+      schemaToUpdate <- repositories.schema.get(uuid)
+      updatedSchema <- repositories.schema.update(
+        schemaToUpdate.copy(data =
+          schemaToUpdate.data.copy(name = update.name)
+        )
+      )
+    } yield updatedSchema
   }
 }

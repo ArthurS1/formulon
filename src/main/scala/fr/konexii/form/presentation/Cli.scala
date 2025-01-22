@@ -8,10 +8,12 @@ object Cli {
   sealed trait Conf
 
   case class Valid(
-      val port: String = "8080",
+      val port: Int = 8080,
       val ip: String = "0.0.0.0",
       val help: Boolean = false,
-      val jdbcUrl: String = "jdbc:postgresql://localhost/formulon",
+      val dbHost: String = "localhost",
+      val dbDatabase: String = "formulon",
+      val dbPort: Int = 5432,
       val dbUser: String = "server",
       val dbPass: String = "test"
   ) extends Conf
@@ -25,32 +27,45 @@ object Cli {
     (args, acc) match {
       case (("--help" | "-h") :: xs, conf: Valid) =>
         argParser(xs, conf.copy(help = true))
-      case (("--port" | "-p") :: v :: xs, conf: Valid) =>
-        argParser(xs, conf.copy(port = v))
       case (("--ip") :: v :: xs, conf: Valid) =>
         argParser(xs, conf.copy(ip = v))
-      case (("--jdbcurl") :: v :: xs, conf: Valid) =>
-        argParser(xs, conf.copy(jdbcUrl = v))
+      case (("--db-host") :: v :: xs, conf: Valid) =>
+        argParser(xs, conf.copy(dbHost = v))
+      case (("--db-database") :: v :: xs, conf: Valid) =>
+        argParser(xs, conf.copy(dbDatabase = v))
       case (("--db-user") :: v :: xs, conf: Valid) =>
         argParser(xs, conf.copy(dbUser = v))
       case (("--db-password") :: v :: xs, conf: Valid) =>
         argParser(xs, conf.copy(dbPass = v))
+      case (("--port" | "-p") :: v :: xs, conf: Valid) =>
+        v.toIntOption
+          .map((port: Int) => conf.copy(port = port))
+          .getOrElse(Invalid("Server port is incorrect."))
+      case (("--db-port") :: v :: xs, conf: Valid) =>
+        argParser(
+          xs,
+          v.toIntOption
+            .map((port: Int) => conf.copy(dbPort = port))
+            .getOrElse(Invalid("Database port is incorrect."))
+        )
       case (Nil, conf: Valid) => conf
       case _                  => Invalid()
     }
 
-  val usage = """Form service
+  val usage = """Formulon
 
 An HTTP server that allows the creation and serving of dynamic forms.
 
-USAGE: form-service [OPTIONS]
+USAGE: formulon [OPTIONS]
 
 OPTIONS:
 --port PORT         Port to listen from (default 8080)
 --ip IP             Ipv4 to listen from (default 0.0.0.0)
---jdbcurl URL       The JDBC url to connect to the postgres database (default jdbc:postgresql://localhost/formulon)
---db-user USER      The database user to connect as (default "form")
---db-password PASS  The password for this database user (default "test")
+--db-user USER      The DBMS user to connect as (default "form")
+--db-password PASS  The password for this DBMS user (default "test")
+--db-host HOST      The host of the DBMS (default "localhost")
+--db-port PASS      The port of the DBMS (default "5432")
+--db-database DB    The database to connect to (default "formulon")
 --help or -h        Shows this message
 """
 
