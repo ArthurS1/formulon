@@ -12,7 +12,6 @@ import java.util.UUID
 
 import fr.konexii.form.presentation.Serialization._
 import fr.konexii.form.domain._
-import fr.konexii.form.application.dtos.CreateVersionRequest
 
 class CreateVersion[F[_]: Async](repositories: Repositories[F]) {
 

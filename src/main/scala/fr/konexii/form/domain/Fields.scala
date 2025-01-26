@@ -4,11 +4,9 @@ package domain
 import cats._
 import cats.syntax.all._
 
-import io.circe.{Decoder, Encoder, CursorOp}
-import io.circe.Json
-import io.circe.HCursor
-import io.circe.DecodingFailure
+import io.circe._
 import io.circe.syntax._
+
 import java.util.UUID
 
 /*
