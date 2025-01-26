@@ -1,2 +1,2 @@
 #!/bin/sh
-curl $ENDPOINT/ping
+curl -sS -i $ENDPOINT/ping

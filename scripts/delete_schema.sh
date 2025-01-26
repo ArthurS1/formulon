@@ -1,2 +1,2 @@
 #!/bin/sh
-curl -w "%{http_code}" -X DELETE $ENDPOINT/schema/$@
+curl -sS -i -X DELETE $ENDPOINT/schema/$@

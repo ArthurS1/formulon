@@ -27,10 +27,12 @@ import skunk.data.Completion
 
 import fr.konexii.form.application._
 import fr.konexii.form.domain._
-import fr.konexii.form.presentation.JsonUtils._
+import fr.konexii.form.presentation.Serialization._
 
 class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
     extends repositories.SchemaAggregate[F] {
+
+  private val chunkSize = 64
 
   private def schemaEntity(
       versions: List[Entity[SchemaVersion]]
@@ -90,16 +92,15 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
     } yield result
   }
 
-  def save(schema: Entity[Schema]): F[Entity[Schema]] = db.use { s =>
+  def create(schema: Entity[Schema]): F[Entity[Schema]] = db.use { s =>
     s.transaction.use(f =>
       for {
         versions <- schema.data.versions.traverse(v =>
-          saveVersion(v, s, schema.id)
+          createVersion(v, s, schema.id)
         )
         schemaInsertion =
           sql"INSERT INTO schemas VALUES ($uuid, $varchar, ${uuid.opt}) RETURNING *"
             .query(schemaEntity(versions))
-
         pc <- s.prepare(schemaInsertion)
         result <- pc.unique(
           schema.id :: schema.data.name :: schema.data.active
@@ -109,51 +110,52 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
     )
   }
 
-  private def saveVersion(
-      version: Entity[SchemaVersion],
-      s: Session[F],
-      schemaId: UUID
-  ): F[Entity[SchemaVersion]] = {
-    val versionInsertion =
-      sql"INSERT INTO schema_versions VALUES ($uuid, $timestamp, $uuid) RETURNING *"
-        .query(versionEntity)
-
-    for {
-      pc <- s.prepare(versionInsertion)
-      result <- pc.unique(version.id *: version.data.date *: schemaId *: HNil)
-    } yield result
-  }
-
   def update(schema: Entity[Schema]): F[Entity[Schema]] = db.use { s =>
     val versionQuery =
-      sql"""
-          INSERT INTO schema_versions (id, date, schema_id, content)
-          VALUES ($uuid, $timestamp, $uuid, ${jsonb[SchemaTree[
-          FieldWithMetadata
-        ]]})
-          ON CONFLICT (id) DO UPDATE SET content = ${jsonb[SchemaTree[
-          FieldWithMetadata
-        ]]}
-          RETURNING *
-          """
+      sql"SELECT id, date, schema_id, content FROM schema_versions WHERE schema_id = $uuid"
         .query(versionEntity)
 
     s.transaction.use(f =>
       for {
-        preparedVersionQuery <- s.prepare(versionQuery)
-        versions <- schema.data.versions.traverse(v =>
-          preparedVersionQuery.unique(
-            v.id *: v.data.date *: schema.id *: v.data.content *: v.data.content *: HNil
-          )
+        preparedVersionsQuery <- s.prepare(versionQuery)
+        currentVersions <-
+          preparedVersionsQuery
+            .stream(schema.id, chunkSize)
+            .compile
+            .toList
+        updatedVersions <- schema.data.versions.traverse(v =>
+          currentVersions.find(_.id === v.id) match {
+            case None        => createVersion(v, s, schema.id)
+            case Some(version) => Async[F].pure(version)
+          }
         )
         schemaQuery = sql"UPDATE schemas SET name = ${varchar(80)}, active_schema_id = ${uuid.opt} WHERE id = $uuid RETURNING *"
-          .query(schemaEntity(versions))
+          .query(schemaEntity(updatedVersions))
         preparedSchemaQuery <- s.prepare(schemaQuery)
         schema <- preparedSchemaQuery.unique(
           schema.data.name *: schema.data.active.map(_.id) *: schema.id *: HNil
         )
       } yield schema
     )
+  }
+
+  private def createVersion(
+      version: Entity[SchemaVersion],
+      s: Session[F],
+      schemaId: UUID
+  ): F[Entity[SchemaVersion]] = {
+    val versionInsertion =
+      sql"INSERT INTO schema_versions VALUES ($uuid, $timestamp, $uuid, ${jsonb[SchemaTree[
+          FieldWithMetadata
+        ]]}) RETURNING *"
+        .query(versionEntity)
+
+    for {
+      pc <- s.prepare(versionInsertion)
+      result <- pc.unique(
+        version.id *: version.data.date *: schemaId *: version.data.content *: HNil
+      )
+    } yield result
   }
 
   def get(id: UUID): F[Entity[Schema]] = db.use { s =>
@@ -165,9 +167,9 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
       for {
         preparedVersionsQuery <- s.prepare(versionQuery)
         versions <- preparedVersionsQuery
-          .stream(id, 64)
+          .stream(id, chunkSize)
           .compile
-          .toList // TODO : understand how chunk size matters and should be set
+          .toList
         schemaQuery =
           sql"SELECT id, name, active_schema_id FROM schemas WHERE id = $uuid"
             .query(schemaEntity(versions))

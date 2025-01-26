@@ -1,2 +1,2 @@
 #!/bin/sh
-curl -w "%{http_code}" $ENDPOINT/schema/$@ | jq
+curl -sS -i $ENDPOINT/schema/$@ | awk -f curl_split.awk | jq

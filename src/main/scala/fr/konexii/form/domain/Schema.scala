@@ -27,11 +27,11 @@ final case class Schema(
 
   def addNewVersion[F[_]: Sync : UUIDGen](
       content: SchemaTree[FieldWithMetadata]
-  ): F[Schema] =
+  ): F[(Schema, Entity[SchemaVersion])] =
     for {
       sv <- SchemaVersion(content)
       entity <- Entity.generateUUID(sv)
-    } yield this.copy(versions = entity :: versions)
+    } yield (this.copy(versions = entity :: versions), entity)
 
 }
 

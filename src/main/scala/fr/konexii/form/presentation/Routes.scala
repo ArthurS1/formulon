@@ -1,10 +1,6 @@
 package fr.konexii.form
 package presentation
 
-/*
- * TODO : There should be a way to remove dependency on cats effect's IO
- */
-
 import cats.effect._
 import cats._
 import cats.syntax.all._
@@ -22,6 +18,7 @@ import java.util.UUID
 import fr.konexii.form.application._
 import fr.konexii.form.domain._
 import fr.konexii.form.application.dtos._
+import fr.konexii.form.presentation.Serialization._
 
 class Routes(repositories: Repositories[IO]) {
 
@@ -34,27 +31,42 @@ class Routes(repositories: Repositories[IO]) {
     .of[IO] {
       // add a new version to the schema
       case req @ POST -> Root / "schema" / id / "version" / "add" =>
-        /*for {
-          request <- req.as[CreateVersionRequest]
-          newVersion <-
-          response <- Ok()
-        } yield response*/
-        Ok("")
+        for {
+          rawBody <- req.bodyText.compile.string
+          newVersion <- new usecases.CreateVersion(repositories)
+            .execute(id, rawBody)
+          response <- Ok(newVersion)
+        } yield response
       // return all available versions
       case req @ GET -> Root / "schema" / id / "version" =>
-        Ok("")
+        for {
+          versions <- new usecases.ReadVersionList(repositories).execute(id)
+          response <- Ok(versions)
+        } yield response
       // return a specific version with its content
       case req @ GET -> Root / "schema" / id / "version" / versionId =>
-        Ok("")
+        for {
+          version <- new usecases.ReadVersion(repositories)
+            .execute(id, versionId)
+          response <- Ok(version)
+        } yield response
       // return active version schema
       case req @ GET -> Root / "schema" / id / "version" / "active" =>
-        Ok("")
+        for {
+          activeVersion <- new usecases.ReadActiveVersion(repositories)
+            .execute(id)
+          response <- Ok(activeVersion)
+        } yield response
       // update active version to the id
       case req @ PUT -> Root / "schema" / id / "version" / "active" / versionId =>
-        Ok("")
+        for {
+          _ <- new usecases.SetActiveVersion(repositories)
+            .execute(id, versionId)
+          response <- NoContent()
+        } yield response
       // remove active version (shutdown the schema)
       case req @ DELETE -> Root / "schema" / id / "version" / "active" =>
-        Ok("")
+        new usecases.UnsetActiveVersion(repositories).execute(id) >> Accepted()
     }
 
   val schemaRoutes = HttpRoutes
@@ -65,7 +77,7 @@ class Routes(repositories: Repositories[IO]) {
           newSchema <- req.as[CreateSchemaRequest]
           createdSchema <- new usecases.CreateSchema(repositories)
             .execute(newSchema)
-          response <- Ok(createdSchema)
+          response <- Created(createdSchema)
         } yield response
       // get the schema with the id and its active version content
       case GET -> Root / "schema" / id =>
@@ -83,7 +95,7 @@ class Routes(repositories: Repositories[IO]) {
         } yield response
       // delete the schema
       case DELETE -> Root / "schema" / id =>
-        new usecases.DeleteSchema[IO](repositories).execute(id) >> Ok()
+        new usecases.DeleteSchema[IO](repositories).execute(id) >> NoContent()
     }
 
   val routes = schemaRoutes <+> versionRoutes <+> infrastructureRoutes

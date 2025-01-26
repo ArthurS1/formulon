@@ -79,12 +79,16 @@ object Main extends IOApp {
     LoggerMidleware.httpRoutes[IO](
       logHeaders = true,
       logBody = true
-    )(ErrorHandling.Custom.recoverWith(routes) { case e: Exception =>
-      OptionT.liftF(
-        for {
-          _ <- Logger[IO].error(s"""An error was never caught : ${e.getMessage()}""")
-        } yield Response[IO](status = Status.InternalServerError)
-      )
-    })
+    )(
+      ErrorHandling.Custom.recoverWith(routes) { case e: Exception =>
+        OptionT.liftF(
+          for {
+            _ <- Logger[IO].error(e)(
+              s"""An error was never caught : ${e.toString}"""
+            )
+          } yield Response[IO](status = Status.InternalServerError)
+        )
+      }
+    )
 
 }

@@ -2,15 +2,55 @@ package fr.konexii.form
 package presentation
 
 import cats.syntax.all._
+
 import io.circe._
 import io.circe.syntax._
-import io.circe.JsonObject
+import io.circe.Json._
+import io.circe.parser.decode
+
 import java.util.UUID
 
 import fr.konexii.form.domain._
 import fr.konexii.form.domain.FieldWithMetadata._
 
-object JsonUtils extends SchemaTreeCirceInstances[FieldWithMetadata]
+object Serialization
+    extends SchemaTreeCirceInstances[FieldWithMetadata]
+    with EntityCirceInstances
+
+sealed private[presentation] trait EntityCirceInstances {
+
+  implicit def encoderForEntity[T: Encoder]: Encoder[Entity[T]] =
+    new Encoder[Entity[T]] {
+      def apply(a: Entity[T]): Json =
+        a.data.asJson
+          .deepMerge(
+            Json
+              .obj(
+                ("id", Json.fromString(a.id.toString))
+              )
+          )
+    }
+
+  implicit def decoderForEntity[T: Decoder]: Decoder[Entity[T]] =
+    new Decoder[Entity[T]] {
+      def apply(c: HCursor): Decoder.Result[Entity[T]] = {
+        for {
+          id <- c.downField("id").as[UUID]
+          rest <- Either.fromOption(
+            c.withFocusM(json =>
+              json.asObject.map(_.filterKeys(_ != "id").asJson)
+            ),
+            DecodingFailure(
+              "The top level of the Json is not an object. (This error should never happen !)",
+              c.history
+            )
+          )
+          data <- rest.as[T]
+        } yield Entity(id, data)
+      }
+    }
+
+}
 
 sealed abstract private[presentation] class SchemaTreeCirceInstances[
     T: Encoder: Decoder

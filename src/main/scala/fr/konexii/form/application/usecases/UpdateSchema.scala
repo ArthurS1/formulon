@@ -7,8 +7,7 @@ import cats.syntax.all._
 
 import java.util.UUID
 
-import fr.konexii.form.domain.Entity
-import fr.konexii.form.domain.Schema
+import fr.konexii.form.domain._
 
 class UpdateSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
   def execute(

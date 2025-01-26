@@ -18,6 +18,6 @@ class CreateSchema[F[_]](repositories: Repositories[F])(implicit F: Monad[F], G:
   def execute(newSchema: CreateSchemaRequest): F[Entity[Schema]] =
     for {
       uuid <- G.randomUUID
-      newSchemaEntity <- repositories.schema.save(Entity(uuid, newSchema))
+      newSchemaEntity <- repositories.schema.create(Entity(uuid, newSchema))
     } yield newSchemaEntity
 }
