@@ -1,23 +1,24 @@
-package fr.konexii.form
-package application
-package usecases
+package fr.konexii.form.application.usecases
 
 import cats._
-import cats.implicits._
-import cats.syntax._
-import cats.instances._
+import cats.data._
+import cats.syntax.all._
 import cats.effect.std.UUIDGen
 
+import fr.konexii.form.domain._
 import fr.konexii.form.application.Repositories
+import fr.konexii.form.application.utils.CompositeException
 import fr.konexii.form.application.dtos.CreateSchemaRequest
-import fr.konexii.form.application.dtos.CreateSchemaRequest.implicits._
-import fr.konexii.form.domain.Entity
-import fr.konexii.form.domain.Schema
 
-class CreateSchema[F[_]](repositories: Repositories[F])(implicit F: Monad[F], G: UUIDGen[F]) {
-  def execute(newSchema: CreateSchemaRequest): F[Entity[Schema]] =
+class CreateSchema[F[_]: MonadThrow: UUIDGen](repositories: Repositories[F]) {
+
+  def execute(newSchemaRequest: CreateSchemaRequest): F[Entity[Schema]] =
     for {
-      uuid <- G.randomUUID
+      uuid <- UUIDGen[F].randomUUID
+      newSchema <- MonadThrow[F].fromValidated(
+        Schema(name = newSchemaRequest.name).leftMap(CompositeException)
+      )
       newSchemaEntity <- repositories.schema.create(Entity(uuid, newSchema))
     } yield newSchemaEntity
+
 }

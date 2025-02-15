@@ -1,6 +1,4 @@
-package fr.konexii.form
-package infrastructure
-package postgres
+package fr.konexii.form.infrastructure.postgres
 
 import skunk._
 import skunk.data.Completion._
@@ -10,26 +8,27 @@ import skunk.circe.codec.json.jsonb
 
 import fs2.Stream
 
-import cats.effect._
-import cats.effect.std._
 import cats._
+import cats.effect._
 import cats.syntax.all._
 import cats.instances.all._
 
-import io.circe.parser.decode
 import io.circe.syntax._
+import io.circe.parser.decode
 
 import java.time.LocalDateTime
 import java.util.UUID
 
 import shapeless.HNil
+
 import skunk.data.Completion
 
-import fr.konexii.form.application._
 import fr.konexii.form.domain._
+import fr.konexii.form.domain.fields._
+import fr.konexii.form.application._
 import fr.konexii.form.presentation.Serialization._
 
-class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
+class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]])
     extends repositories.SchemaAggregate[F] {
 
   private val chunkSize = 64
@@ -43,7 +42,7 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
           .map(activeId =>
             Either.fromOption(
               versions.find(e => e.id === activeId),
-              s"Could not find the active schema version with id ${activeId.toString}"
+              s"Could not find the active schema version with id ${activeId.toString}."
             )
           )
           .sequence
@@ -51,10 +50,10 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
     }
 
   lazy val versionEntity: Decoder[Entity[SchemaVersion]] =
-    (uuid ~ timestamp ~ uuid ~ jsonb[SchemaTree[FieldWithMetadata]]).map {
-      case id ~ date ~ schemaId ~ content =>
+    (uuid ~ timestamp ~ uuid ~ jsonb[SchemaTree[Entity[FieldWithMetadata]]])
+      .map { case id ~ date ~ schemaId ~ content =>
         Entity(id, SchemaVersion(date, content))
-    }
+      }
 
   def delete(id: UUID): F[Unit] = db.use { s =>
     val schemaDeletion = sql"DELETE FROM schemas WHERE id = $uuid".command
@@ -65,7 +64,7 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
         case Delete(count) if count < 1 =>
           Async[F].raiseError(
             new Exception(
-              s"Could not delete schema with id $id (does the schema exist ?)"
+              s"Could not delete schema with id $id. (does the schema exist ?)"
             )
           )
         case _ => Async[F].unit
@@ -84,7 +83,7 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
         case Delete(count) if count < 1 =>
           Async[F].raiseError(
             new Exception(
-              s"Could not delete schema version with id $id (does the version exist ?)"
+              s"Could not delete schema version with id $id. (does the version exist ?)"
             )
           )
         case _ => Async[F].unit
@@ -125,7 +124,7 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
             .toList
         updatedVersions <- schema.data.versions.traverse(v =>
           currentVersions.find(_.id === v.id) match {
-            case None        => createVersion(v, s, schema.id)
+            case None          => createVersion(v, s, schema.id)
             case Some(version) => Async[F].pure(version)
           }
         )
@@ -146,7 +145,7 @@ class SchemaAggregate[F[_]: Async: Console](db: Resource[F, Session[F]])
   ): F[Entity[SchemaVersion]] = {
     val versionInsertion =
       sql"INSERT INTO schema_versions VALUES ($uuid, $timestamp, $uuid, ${jsonb[SchemaTree[
-          FieldWithMetadata
+          Entity[FieldWithMetadata]
         ]]}) RETURNING *"
         .query(versionEntity)
 

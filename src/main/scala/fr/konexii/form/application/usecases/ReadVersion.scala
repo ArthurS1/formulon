@@ -1,29 +1,23 @@
-package fr.konexii.form
-package application
-package usecases
-
-import java.util.UUID
+package fr.konexii.form.application.usecases
 
 import cats._
 import cats.syntax.all._
-import cats.effect._
 
 import fr.konexii.form.domain._
+import fr.konexii.form.application.utils.uuid._
+import fr.konexii.form.application.Repositories
 
 class ReadVersion[F[_]: MonadThrow](respositories: Repositories[F]) {
 
   def execute(schemaId: String, versionId: String): F[Entity[SchemaVersion]] =
     for {
-      schemaUuid <- MonadThrow[F].catchNonFatal(UUID.fromString(schemaId))
-      versionUuid <- MonadThrow[F].catchNonFatal(UUID.fromString(versionId))
+      schemaUuid <- schemaId.toUuid
+      versionUuid <- versionId.toUuid
       schema <- respositories.schema.get(schemaUuid)
-      result <- schema.data.versions.find(e => e.id === versionUuid) match {
-        case None =>
-          MonadThrow[F].raiseError(
-            new Exception(s"Failed to find version with id $versionId")
-          )
-        case Some(value) => MonadThrow[F].pure(value)
-      }
+      result <- MonadThrow[F].fromOption(
+        schema.data.versions.find(e => e.id === versionUuid),
+        new Exception(s"Failed to find schema version with id $versionId.")
+      )
     } yield result
 
 }

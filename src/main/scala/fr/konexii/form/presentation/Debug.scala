@@ -1,9 +1,9 @@
-package fr.konexii.form
-package presentation
+package fr.konexii.form.presentation
+
+import io.circe._
 
 import org.http4s.dsl.io._
 import org.http4s.circe.CirceEntityEncoder._
-import io.circe._
 
 object Debug {
 

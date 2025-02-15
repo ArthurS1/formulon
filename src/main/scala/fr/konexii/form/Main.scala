@@ -3,7 +3,7 @@ package fr.konexii.form
 import cats.data.OptionT
 import cats.implicits._
 import cats.effect._
-import cats.effect.std.Console
+import cats.effect.std._
 
 import com.comcast.ip4s.{Port, IpAddress}
 
@@ -16,8 +16,6 @@ import fr.konexii.form.presentation.Cli._
 
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-
-import scala.sys.process._
 
 object Main extends IOApp {
 
@@ -40,7 +38,9 @@ object Main extends IOApp {
     }
 
   def infos(conf: Valid): IO[Unit] =
-    IO.blocking(s"figlet \"Formulon\"".!) >>
+    banner().handleErrorWith(_ =>
+      IO.println("Formulon started. Failed to load banner.")
+    ) >>
       IO.println(s"port: ${conf.port}") >>
       IO.println(s"ip: ${conf.ip}")
 

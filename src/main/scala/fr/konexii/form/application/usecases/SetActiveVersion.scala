@@ -1,28 +1,22 @@
-package fr.konexii.form
-package application
-package usecases
+package fr.konexii.form.application.usecases
 
 import cats._
 import cats.syntax.all._
 
-import java.util.UUID
-
-import fr.konexii.form.domain._
+import fr.konexii.form.application.utils.uuid._
+import fr.konexii.form.application.Repositories
 
 class SetActiveVersion[F[_]: MonadThrow](repositories: Repositories[F]) {
 
   def execute(schemaId: String, versionId: String): F[Unit] =
     for {
-      schemaUuid <- MonadThrow[F].catchNonFatal(UUID.fromString(schemaId))
-      versionUuid <- MonadThrow[F].catchNonFatal(UUID.fromString(versionId))
+      schemaUuid <- schemaId.toUuid
+      versionUuid <- versionId.toUuid
       schema <- repositories.schema.get(schemaUuid)
-      version <- schema.data.versions.find(_.id === versionUuid) match {
-        case None =>
-          MonadThrow[F].raiseError(
-            new Exception(s"Could not find version $versionId")
-          )
-        case Some(value) => MonadThrow[F].pure(value)
-      }
+      version <- MonadThrow[F].fromOption(
+        schema.data.versions.find(_.id === versionUuid),
+        new Exception(s"Could not find version $versionId.")
+      )
       _ <- repositories.schema.update(
         schema.copy(data = schema.data.copy(active = Some(version)))
       )

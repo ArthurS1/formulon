@@ -1,7 +1,3 @@
-package fr.konexii.form
-package application
-package dtos
+package fr.konexii.form.application.dtos
 
-import java.util.UUID
-
-case class UpdateSchemaRequest(name: String)
+final case class UpdateSchemaRequest(name: String)

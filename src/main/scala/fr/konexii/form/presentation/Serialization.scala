@@ -1,6 +1,6 @@
-package fr.konexii.form
-package presentation
+package fr.konexii.form.presentation
 
+import cats._
 import cats.syntax.all._
 
 import io.circe._
@@ -10,214 +10,227 @@ import io.circe.parser.decode
 
 import java.util.UUID
 
+import scala.util.Try
+
 import fr.konexii.form.domain._
-import fr.konexii.form.domain.FieldWithMetadata._
+import fr.konexii.form.domain.answer._
+import fr.konexii.form.domain.fields._
 
 object Serialization
-    extends SchemaTreeCirceInstances[FieldWithMetadata]
+    extends SchemaTreeCirceInstances
     with EntityCirceInstances
+    with AnswerCirceInstances
+    with SubmissionCirceInstances
+    with FieldWithMetadataCirceInstances
 
-sealed private[presentation] trait EntityCirceInstances {
+sealed trait FieldWithMetadataCirceInstances {
 
-  implicit def encoderForEntity[T: Encoder]: Encoder[Entity[T]] =
-    new Encoder[Entity[T]] {
-      def apply(a: Entity[T]): Json =
-        a.data.asJson
-          .deepMerge(
-            Json
-              .obj(
-                ("id", Json.fromString(a.id.toString))
-              )
-          )
+  implicit val encoderForCommon: Encoder[FieldWithMetadata] =
+    new Encoder[FieldWithMetadata] {
+      def apply(a: FieldWithMetadata): Json = Json.obj(
+        ("type", Json.fromString(Field.typeToString(a.field))),
+        ("data", a.field.asJson),
+        ("title", Json.fromString(a.title)),
+        ("required", Json.fromBoolean(a.required))
+      )
     }
 
-  implicit def decoderForEntity[T: Decoder]: Decoder[Entity[T]] =
-    new Decoder[Entity[T]] {
-      def apply(c: HCursor): Decoder.Result[Entity[T]] = {
+  implicit val decoderForCommon: Decoder[FieldWithMetadata] =
+    new Decoder[FieldWithMetadata] {
+      def apply(c: HCursor): Decoder.Result[FieldWithMetadata] = {
+        val type_ = c.downField("type")
+
         for {
-          id <- c.downField("id").as[UUID]
-          rest <- Either.fromOption(
-            c.withFocusM(json =>
-              json.asObject.map(_.filterKeys(_ != "id").asJson)
-            ),
-            DecodingFailure(
-              "The top level of the Json is not an object. (This error should never happen !)",
-              c.history
-            )
-          )
-          data <- rest.as[T]
-        } yield Entity(id, data)
+          fieldType <- type_.as[String]
+          data <- c.downField("data").as[Json]
+          field <- Field.decoding(fieldType, data, type_.history)
+          title <- c.downField("title").as[String]
+          required <- c.downField("required").as[Boolean]
+        } yield FieldWithMetadata(title, required, field)
       }
     }
 
 }
 
-sealed abstract private[presentation] class SchemaTreeCirceInstances[
-    T: Encoder: Decoder
-] {
+sealed trait AnswerCirceInstances {
 
-  implicit val encoderForSchemaTree: Encoder[SchemaTree[T]] =
-    new Encoder[SchemaTree[T]] {
+  import answer.Text.decoderForText
+  import answer.Text.encoderForText
 
-      def apply(st: SchemaTree[T]): Json = encode(st)
-
-      private def encode(st: SchemaTree[T]): Json =
-        st match {
-          case v @ Block(_, None) =>
-            blockJson(v)
-
-          case v @ Block(_, Some(next)) =>
-            blockJson(v).deepMerge(encode(next))
-
-          case v @ Branch(cond, Entity(id, (left, right))) => {
-            val branch = branchJson(v)
-            val b = deepMergeIfDefined(branch, left)
-            deepMergeIfDefined(b, right)
+  implicit def decoderForAnswer: Decoder[Answer] =
+    new Decoder[Answer] {
+      def apply(c: HCursor): Decoder.Result[Answer] =
+        for {
+          responseType <- c.downField("type").as[String]
+          result <- responseType match {
+            case "text" => c.downField("data").as[answer.Text](decoderForText)
+            case _ => Left(DecodingFailure("No such response type.", c.history))
           }
-        }
-
-      def blockJson(block: Block[T]): Json =
-        Json
-          .obj(
-            (
-              block.data.id.toString,
-              Json.obj(
-                ("type", Json.fromString("block")),
-                ("field", block.data.data.asJson),
-                ("next", uuidOrNull(block.next))
-              )
-            )
-          )
-
-      def branchJson(branch: Branch[T]): Json = {
-        val Entity(_, (left, right)) = branch.choices
-
-        Json
-          .obj(
-            (
-              branch.choices.id.toString,
-              Json.obj(
-                ("type", Json.fromString("branch")),
-                ("condition", Json.fromString(branch.condition)),
-                ("ifTrue", uuidOrNull(left)),
-                ("ifFalse", uuidOrNull(right))
-              )
-            )
-          )
-      }
-
-      def deepMergeIfDefined(st: Json, optSt: Option[SchemaTree[T]]): Json =
-        optSt match {
-          case None        => st
-          case Some(value) => st.deepMerge(encode(value))
-        }
-
-      def uuidOrNull(st: Option[SchemaTree[T]]): Json =
-        st.map {
-          case Branch(condition, Entity(id, _)) => Json.fromString(id.toString)
-          case Block(Entity(id, _), next)       => Json.fromString(id.toString)
-        }.getOrElse(Json.Null)
-
+        } yield result
     }
 
-  implicit val decoderForSchemaTree: Decoder[SchemaTree[T]] =
-    new Decoder[SchemaTree[T]] {
-
-      def apply(
-          c: HCursor
-      ): Decoder.Result[SchemaTree[T]] =
-        for {
-          listOfKeys <- Either.fromOption(
-            c.keys.map(_.toList.reverse),
-            DecodingFailure("No keys in the root object", c.history)
-          )
-          listOfUuids <- listOfKeys
-            .map(key =>
-              Either
-                .catchNonFatal(UUID.fromString(key))
-                .left
-                .map((err: Throwable) =>
-                  DecodingFailure(err.getMessage(), c.history)
-                )
+  implicit def encoderForAnswer: Encoder[Answer] =
+    new Encoder[Answer] {
+      def apply(a: Answer): Json =
+        a match {
+          case b @ answer.Text(value) =>
+            Json.obj(
+              ("type", Json.fromString("text")),
+              ("data", b.asJson(encoderForText))
             )
-            .sequence
-          result <- decode(listOfUuids.head, listOfUuids.tail.toSet, c)
+        }
+    }
+}
+
+sealed trait SubmissionCirceInstances {
+
+  import fr.konexii.form.presentation.Serialization._
+
+  implicit def decoderForSubmission: Decoder[Submission] =
+    new Decoder[Submission] {
+      def apply(c: HCursor): Decoder.Result[Submission] =
+        for {
+          answers <- c
+            .downField("answers")
+            .as[List[Entity[Answer]]]
+        } yield Submission(answers)
+    }
+
+  implicit def encoderForSubmission: Encoder[Submission] =
+    new Encoder[Submission] {
+      def apply(a: Submission): Json = Json.obj(
+        ("answers", a.answers.asJson)
+      )
+    }
+
+}
+
+sealed trait EntityCirceInstances {
+
+  implicit def encoderForEntity[T: Encoder]: Encoder[Entity[T]] =
+    new Encoder[Entity[T]] {
+      def apply(a: Entity[T]): Json =
+        Json.obj((a.id.toString, Json.obj(("data", a.data.asJson))))
+    }
+
+  // in an object, will attempt to decode the entity with given id
+  def decoderForEntityWithUuid[T: Decoder](uuid: UUID): Decoder[Entity[T]] =
+    new Decoder[Entity[T]] {
+      def apply(c: HCursor): Decoder.Result[Entity[T]] = {
+        for {
+          data <- c
+            .downField(uuid.toString)
+            .downField("data")
+            .as[T]
+        } yield Entity(uuid, data)
+      }
+    }
+
+  // In an object, will attempt to decode the first entity found
+  implicit def decoderForEntity[T: Decoder]: Decoder[Entity[T]] =
+    new Decoder[Entity[T]] {
+      def apply(c: HCursor): Decoder.Result[Entity[T]] = {
+        for {
+          key <- Either.fromOption(
+            c.keys.flatMap(keys =>
+              keys.foldLeft[Option[UUID]](None) {
+                case (None, e) => Try(UUID.fromString(e)).toOption
+                case (v, _)    => v
+              }
+            ),
+            DecodingFailure(
+              "Could not find a key with a valid UUID in the object.",
+              c.history
+            )
+          )
+          result <- decoderForEntityWithUuid[T](key).apply(c)
+        } yield result
+      }
+    }
+}
+
+sealed trait SchemaTreeCirceInstances {
+
+  import Serialization.decoderForEntity
+  import Serialization.encoderForEntity
+
+  implicit def encoderForSchemaTree[A: Encoder]
+      : Encoder[SchemaTree[Entity[A]]] =
+    new Encoder[SchemaTree[Entity[A]]] {
+      def apply(a: SchemaTree[Entity[A]]): Json = a match {
+        case Branch(content, next, out) =>
+          content.asJson
+            .deepMerge(nextId(content.id, "next", next))
+            .deepMerge(nextId(content.id, "out", out))
+            .deepMerge(apply(next))
+            .deepMerge(apply(out))
+        case Trunk(content, next) =>
+          content.asJson
+            .deepMerge(nextId(content.id, "next", next))
+            .deepMerge(apply(next))
+        case End() => Json.obj()
+      }
+
+      private def nextId(
+          nodeId: UUID,
+          fieldName: String,
+          st: SchemaTree[Entity[A]]
+      ): Json =
+        st.id
+          .map(id =>
+            Json.obj(
+              (
+                nodeId.toString,
+                Json.obj((fieldName, Json.fromString(id.toString)))
+              )
+            )
+          )
+          .getOrElse(Json.obj())
+    }
+
+  implicit def decoderForSchemaTree[A: Decoder]
+      : Decoder[SchemaTree[Entity[A]]] =
+    new Decoder[SchemaTree[Entity[A]]] {
+      def apply(c: HCursor): Decoder.Result[SchemaTree[Entity[A]]] =
+        for {
+          firstEntity <- Either.fromOption(
+            c.keys.flatMap(_.toList.lastOption),
+            DecodingFailure("No records in the JSON object.", c.history)
+          )
+          uuid <- Either
+            .catchNonFatal(UUID.fromString(firstEntity))
+            .left
+            .map(t => DecodingFailure(t.getMessage, c.history))
+          result <- decodeNext(c, uuid)
         } yield result
 
-      private def toUuidSet(uuids: List[UUID]): Either[Throwable, Set[UUID]] =
-        uuids.foldl[Either[Throwable, Set[UUID]]](Right(Set.empty))(
-          (set, elem) =>
-            set.flatMap(s =>
-              if (s.contains(elem))
-                Left(new Exception(s"Found duplicate block with uuid $elem"))
-              else Right(s + elem)
-            )
-        )
-
-      private def decode(
-          current: UUID,
-          rest: Set[UUID],
-          root: HCursor
-      ): Decoder.Result[SchemaTree[T]] = {
-        val st = root.downField(current.toString)
-        val stType = st.downField("type")
-
-        stType
-          .as[String]
-          .flatMap(_ match {
-            case "block"  => decodeBlock(current, rest, root, st)
-            case "branch" => decodeBranch(current, rest, root, st)
-            case t =>
-              Left(
-                DecodingFailure(
-                  s"Block level type \"$t\" cannot be decoded.",
-                  stType.history
-                )
-              )
-          })
-      }
-
-      private def decodeBranch(
-          current: UUID,
-          rest: Set[UUID],
-          root: HCursor,
-          c: ACursor
-      ): Either[DecodingFailure, Branch[T]] = {
-
-        def decodeOption(
-            uuid: Option[UUID]
-        ): Either[DecodingFailure, Option[SchemaTree[T]]] =
-          uuid
-            .map(next => decode(next, rest - next, root))
-            .sequence
+      private def decodeNext(
+          c: HCursor,
+          currentId: UUID
+      ): Decoder.Result[SchemaTree[Entity[A]]] = {
         for {
-          cond <- c.downField("condition").as[String]
-          leftUuid <- c.downField("ifTrue").as[Option[UUID]]
-          rightUuid <- c.downField("ifFalse").as[Option[UUID]]
-          left <- decodeOption(leftUuid)
-          right <- decodeOption(rightUuid)
-        } yield Branch(cond, Entity(current, (left, right)))
-      }
-
-      private def decodeBlock(
-          current: UUID,
-          rest: Set[UUID],
-          root: HCursor,
-          c: ACursor
-      ): Either[DecodingFailure, Block[T]] = {
-        val field = c.downField("field")
-        val entity =
-          field.as[T].map(f => Entity(current, f))
-        val next = c.downField("next").as[UUID]
-        entity.flatMap(e =>
-          next match {
-            case Left(_) => Right(Block(e, None))
-            case Right(uuid) =>
-              decode(uuid, rest - uuid, root)
-                .flatMap(st => Right(Block(e, Some(st))))
+          entity <- c.as[Entity[A]](
+            Serialization.decoderForEntityWithUuid(currentId)
+          )
+          entityCursor = c.downField(currentId.toString)
+          nextUuids = (
+            entityCursor.downField("out").as[UUID],
+            entityCursor.downField("next").as[UUID]
+          )
+          result <- nextUuids match {
+            case (Right(out), Right(next)) =>
+              for {
+                next <- decodeNext(c, next)
+                out <- decodeNext(c, out)
+              } yield Branch(entity, next, out)
+            case (_, Right(next)) =>
+              for {
+                next <- decodeNext(c, next)
+              } yield Trunk(entity, next)
+            case (Left(_), Left(_))    => Right(Trunk(entity, End()))
+            case (Right(_), Left(err)) => Left(err)
           }
-        )
+        } yield result
       }
-
     }
 }

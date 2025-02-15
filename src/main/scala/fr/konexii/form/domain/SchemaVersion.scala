@@ -1,26 +1,23 @@
-package fr.konexii.form
-package domain
+package fr.konexii.form.domain
 
-import cats.ApplicativeThrow
-import cats.effect.kernel.Sync
+import cats._
+import cats.effect._
 import cats.syntax.all._
-import java.time.DateTimeException
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+
+import java.time._
 import scala.concurrent.duration.FiniteDuration
 
-import fr.konexii.form.domain.Block
+import fr.konexii.form.domain.fields._
 
 final case class SchemaVersion(
     date: LocalDateTime,
-    content: SchemaTree[FieldWithMetadata]
+    content: SchemaTree[Entity[FieldWithMetadata]]
 )
 
 object SchemaVersion {
 
   def apply[F[_]](
-      content: SchemaTree[FieldWithMetadata]
+      content: SchemaTree[Entity[FieldWithMetadata]]
   )(implicit F: Sync[F]): F[SchemaVersion] =
     for {
       fd <- F.realTime

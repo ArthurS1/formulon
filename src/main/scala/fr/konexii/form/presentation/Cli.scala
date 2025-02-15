@@ -1,5 +1,9 @@
-package fr.konexii.form
-package presentation
+package fr.konexii.form.presentation
+
+import cats.effect._
+import cats.effect.std.Console
+
+import java.io._
 
 import scala.annotation.tailrec
 
@@ -14,7 +18,7 @@ object Cli {
       val dbHost: String = "localhost",
       val dbDatabase: String = "formulon",
       val dbPort: Int = 5432,
-      val dbUser: String = "server",
+      val dbUser: String = "formulon",
       val dbPass: String = "test"
   ) extends Conf
 
@@ -52,6 +56,23 @@ object Cli {
       case _                  => Invalid()
     }
 
+  def banner(): IO[Unit] = {
+    val resource = Resource.fromAutoCloseable(IO {
+      val stream = getClass.getClassLoader.getResourceAsStream("banner.txt")
+      require(stream != null, s"Banner file not found.")
+      new BufferedReader(new InputStreamReader(stream))
+    })
+
+    resource.use { f =>
+      def loop(): IO[Unit] =
+        IO(f.readLine()).flatMap {
+          case null => IO.unit
+          case line => Console[IO].println(line) >> loop()
+        }
+      loop()
+    }
+  }
+
   val usage = """Formulon
 
 An HTTP server that allows the creation and serving of dynamic forms.
@@ -61,7 +82,7 @@ USAGE: formulon [OPTIONS]
 OPTIONS:
 --port PORT         Port to listen from (default 8080)
 --ip IP             Ipv4 to listen from (default 0.0.0.0)
---db-user USER      The DBMS user to connect as (default "form")
+--db-user USER      The DBMS user to connect as (default "formulon")
 --db-password PASS  The password for this DBMS user (default "test")
 --db-host HOST      The host of the DBMS (default "localhost")
 --db-port PASS      The port of the DBMS (default "5432")

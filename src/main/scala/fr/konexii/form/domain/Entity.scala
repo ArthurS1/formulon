@@ -1,11 +1,10 @@
-package fr.konexii.form
-package domain
+package fr.konexii.form.domain
+
+import cats._
+import cats.effect._
+import cats.effect.std.UUIDGen
 
 import java.util.UUID
-
-import cats.Functor
-import cats.effect.kernel.Sync
-import cats.effect.std.UUIDGen
 
 final case class Entity[+T](id: UUID, data: T)
 

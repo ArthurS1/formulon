@@ -1,21 +1,21 @@
-package fr.konexii.form
-package application
-package usecases
+package fr.konexii.form.application.usecases
 
 import cats._
 import cats.syntax.all._
 
-import java.util.UUID
-
 import fr.konexii.form.domain._
+import fr.konexii.form.application.Repositories
+import fr.konexii.form.application.dtos.UpdateSchemaRequest
+import fr.konexii.form.application.utils.uuid._
 
 class UpdateSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
+
   def execute(
-      update: dtos.UpdateSchemaRequest,
+      update: UpdateSchemaRequest,
       id: String
-  ): F[Entity[domain.Schema]] = {
+  ): F[Entity[Schema]] = {
     for {
-      uuid <- MonadThrow[F].catchNonFatal(UUID.fromString(id))
+      uuid <- id.toUuid
       schemaToUpdate <- repositories.schema.get(uuid)
       updatedSchema <- repositories.schema.update(
         schemaToUpdate.copy(data =
@@ -24,4 +24,5 @@ class UpdateSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
       )
     } yield updatedSchema
   }
+
 }

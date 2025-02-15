@@ -1,5 +1,4 @@
-package fr.konexii.form
-package domain
+package fr.konexii.form.domain.fields
 
 import cats._
 import cats.syntax.all._
@@ -9,53 +8,17 @@ import io.circe.syntax._
 
 import java.util.UUID
 
-/*
- * FieldWithMetadata properties found in all fields.
- */
-
 final case class FieldWithMetadata(
     title: String,
     required: Boolean,
     field: Field
 )
 
-object FieldWithMetadata extends FieldWithMetadataInstances
-
-sealed abstract private[domain] class FieldWithMetadataInstances {
-
-  implicit val encoderForCommon: Encoder[FieldWithMetadata] =
-    new Encoder[FieldWithMetadata] {
-      def apply(a: FieldWithMetadata): Json = Json.obj(
-        ("type", Json.fromString(Field.typeToString(a.field))),
-        ("data", a.field.asJson),
-        ("title", Json.fromString(a.title)),
-        ("required", Json.fromBoolean(a.required))
-      )
-    }
-
-  implicit val decoderForCommon: Decoder[FieldWithMetadata] =
-    new Decoder[FieldWithMetadata] {
-      def apply(c: HCursor): Decoder.Result[FieldWithMetadata] = {
-        val type_ = c.downField("type")
-
-        for {
-          fieldType <- type_.as[String]
-          data <- c.downField("data").as[Json]
-          field <- Field.decoding(fieldType, data, type_.history)
-          title <- c.downField("title").as[String]
-          required <- c.downField("required").as[Boolean]
-        } yield FieldWithMetadata(title, required, field)
-      }
-    }
-
-}
+sealed trait Field
 
 /*
- * Abstraction on top of field specific data.
- * This should be the only class that needs changes when adding a new field.
+ * TODO : This will be moved when setting up the plugin system.
  */
-
-sealed trait Field
 
 object Field extends FieldInstances {
 

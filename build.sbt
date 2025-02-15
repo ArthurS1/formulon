@@ -2,6 +2,11 @@ val http4sVersion = "0.23.29"
 val circeVersion = "0.14.10"
 val log4catsVersion = "2.7.0"
 
+/*
+ * I have to be honest here, everything that happens in this file is dark magic to me.
+ * Any review is appreciated.
+ */
+
 lazy val formulon = project
   .in(file("."))
   .settings(
@@ -9,6 +14,17 @@ lazy val formulon = project
     version := "0.1",
     scalaVersion := "2.13.15",
     organization := "fr.konexii",
+    scalacOptions ++= Seq(
+      "-encoding", "utf8",
+      "-deprecation",
+      //"-feature",
+      //"-unchecked",
+      //"-Xlint",
+      //"-Xfatal-warnings",
+      //"-Ywarn-dead-code",
+      //"-Ywarn-numeric-widen",
+      //"-Ywarn-value-discard"
+      ),
     assemblyMergeStrategy := {
       case PathList("META-INF", "versions", _*) => MergeStrategy.first
       case x => {

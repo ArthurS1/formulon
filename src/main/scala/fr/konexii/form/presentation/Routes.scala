@@ -1,8 +1,7 @@
-package fr.konexii.form
-package presentation
+package fr.konexii.form.presentation
 
-import cats.effect._
 import cats._
+import cats.effect._
 import cats.syntax.all._
 
 import org.http4s._
@@ -15,8 +14,8 @@ import io.circe.generic.auto._
 
 import java.util.UUID
 
-import fr.konexii.form.application._
 import fr.konexii.form.domain._
+import fr.konexii.form.application._
 import fr.konexii.form.application.dtos._
 import fr.konexii.form.presentation.Serialization._
 
@@ -98,6 +97,26 @@ class Routes(repositories: Repositories[IO]) {
         new usecases.DeleteSchema[IO](repositories).execute(id) >> NoContent()
     }
 
-  val routes = schemaRoutes <+> versionRoutes <+> infrastructureRoutes
+  val submissionRoutes = HttpRoutes
+    .of[IO] {
+      // submit answers to a form
+      case req @ POST -> Root / "schema" / schemaId / "version" / versionId / "submit" =>
+        for {
+          rawBody <- req.bodyText.compile.string
+          _ <- new usecases.Submit[IO](repositories)
+            .execute(schemaId, versionId, rawBody)
+          response <- Created()
+        } yield response
+      // get all submissions associated with a specific version of the form
+      case req @ GET -> Root / "schema" / schemaId / "version" / versionId / "submissions" =>
+        for {
+          answers <- new usecases.GetSubmissionsForVersion[IO](repositories)
+            .execute(schemaId, versionId)
+          response <- Ok(answers)
+        } yield response
+    }
+
+  val routes =
+    submissionRoutes <+> schemaRoutes <+> versionRoutes <+> infrastructureRoutes
 
 }

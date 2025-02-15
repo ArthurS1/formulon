@@ -1,14 +1,12 @@
-package fr.konexii.form
-package application
-package usecases
+package fr.konexii.form.application.usecases
 
-import cats.implicits._
 import cats._
+import cats.syntax.all._
 
 import java.util.UUID
 
-import fr.konexii.form.application.Repositories
 import fr.konexii.form.domain._
+import fr.konexii.form.application.Repositories
 
 class ReadSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
 
