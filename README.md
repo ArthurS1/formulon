@@ -1,5 +1,23 @@
 # Formulon
 
+## **About the Project**
+
+**Formulon** is a tiny (<2000 LoC) form builder and storage service with a
+(future) focus on privacy.
+It provides HTTP REST apis to edit a blueprint of your form and to receive
+and validate the answers.
+Conditional branching in the form is supported but not yet tested in real
+conditions.
+It is expected that Formulon will support plugins to add new form field types
+with the built-in ones to be :
+
+- text field
+- multiple choice field
+- single choice field
+
+At moment of writting, this software is not production ready.
+I am working on this on my spare time, so it will release when it's ready.
+
 ## **Table of Contents**
 - [About the Project](#about-the-project)
 - [Features](#features)
@@ -8,13 +26,6 @@
   - [Installation](#installation)
 - [Usage](#usage)
 - [License](#license)
-
-## **About the Project**
-
-**Formulon** is a form builder and storage service.
-In summary, it is a backend service that allows administrators to build forms with conditional logic and users to fill those forms before saving them.
-This project originates from the need of at home services to have way for their customers to request their services in a customizable way.
-It is provided under a non-commercial license meaning it can only be used for educational, research, or personal purposes.
 
 ### **Tech stack overview**
 
@@ -31,17 +42,16 @@ It is provided under a non-commercial license meaning it can only be used for ed
 - [X] CRUD form schemas for administrators
 - [X] maintain an history of the schema versions
 - [X] serve the forms
-- [ ] store form answers related to the schema version
-- [ ] serve form answers to the responsible organization
-- [ ] make sure an organization can only edit their schema
-- [ ] advertise the different kinds of schema blocks available
+- [X] store form answers related to the schema version
+- [ ] authorization
+- [ ] plugins and plugin advertisement to clients
 
 ## **Getting Started**
 
 ### **Prerequisites**
 
 - [SBT](https://www.scala-sbt.org/)
-- A running PostgreSQL database. (migration scripts not done yet)
+- A running PostgreSQL database.
 
 ### **Installation**
 
@@ -56,7 +66,9 @@ cd yourproject
 sbt assembly
 ```
 
-Then you should just be able to move the jar from `target/scala2.13` to your classpath.
+At this point you should be able to move the jar from `target/scala2.13` to your classpath.
+
+Finally, run all migration scripts from `0-*.sql` (no scripts yet for that).
 
 ## **Usage**
 
@@ -70,7 +82,7 @@ USAGE: formulon [OPTIONS]
 OPTIONS:
 --port PORT         Port to listen from (default 8080)
 --ip IP             Ipv4 to listen from (default 0.0.0.0)
---db-user USER      The DBMS user to connect as (default "form")
+--db-user USER      The DBMS user to connect as (default "formulon")
 --db-password PASS  The password for this DBMS user (default "test")
 --db-host HOST      The host of the DBMS (default "localhost")
 --db-port PASS      The port of the DBMS (default "5432")
