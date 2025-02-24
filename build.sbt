@@ -32,6 +32,7 @@ lazy val formulon = project
         oldStrategy(x)
       }
     },
+    assemblyJarName := s"formulon-${version.value}.jar",
     // Http4s specific configuration
     run / fork := true,
     // Http4s & ember

@@ -1,0 +1,35 @@
+name: Assemble Scala source
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'sbt'
+    - name: Setup sbt installer
+      uses: sbt/setup-sbt@v1.1.5
+    - name: Assemble Scala 2.13 source
+      run: sbt -v assembly
+      #- name: Get project version from sbt
+      #  run: echo "VERSION=$(sbt -batch -error 'print version' | tr -d '\r\n')" >> $GITHUB_ENV
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.6.1
+      with:
+        name: 'build'
+        path: 'target/scala-2.13/formulon-*.jar'
+        if-no-files-found: error
+    - name: Sbt Dependency Submission
+      uses: scalacenter/sbt-dependency-submission@v3.1.0
