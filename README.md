@@ -1,5 +1,7 @@
 # Formulon
 
+![Formulon software logo](/media/logo.svg)
+
 ## **About the Project**
 
 **Formulon** is a tiny (<2000 LoC) form builder and storage service with a
