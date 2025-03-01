@@ -8,7 +8,7 @@ import cats.effect.std.UUIDGen
 
 import java.util.UUID
 
-import fr.konexii.form.domain.fields._
+import fr.konexii.form.domain.field._
 
 final case class Schema(
     name: String,

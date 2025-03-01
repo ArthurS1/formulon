@@ -13,7 +13,7 @@ import fr.konexii.form.application._
 import fr.konexii.form.application.dtos._
 import fr.konexii.form.presentation.Serialization._
 
-class Routes(repositories: Repositories[IO]) {
+class Routes(repositories: Repositories[IO], plugins: Plugins) {
 
   val infrastructureRoutes = HttpRoutes
     .of[IO] { case GET -> Root / "ping" =>
@@ -37,7 +37,9 @@ class Routes(repositories: Repositories[IO]) {
           response <- Ok(versions)
         } yield response
       // return a specific version with its content
-      case GET -> Root / "schema" / UUIDVar(id) / "version" / UUIDVar(versionId) =>
+      case GET -> Root / "schema" / UUIDVar(id) / "version" / UUIDVar(
+            versionId
+          ) =>
         for {
           version <- new usecases.ReadVersion(repositories)
             .execute(id, versionId)
@@ -51,7 +53,9 @@ class Routes(repositories: Repositories[IO]) {
           response <- Ok(activeVersion)
         } yield response
       // update active version to the id
-      case PUT -> Root / "schema" / UUIDVar(id) / "version" / "active" / UUIDVar(versionId) =>
+      case PUT -> Root / "schema" / UUIDVar(
+            id
+          ) / "version" / "active" / UUIDVar(versionId) =>
         for {
           _ <- new usecases.SetActiveVersion(repositories)
             .execute(id, versionId)
@@ -94,7 +98,9 @@ class Routes(repositories: Repositories[IO]) {
   val submissionRoutes = HttpRoutes
     .of[IO] {
       // submit answers to a form
-      case req @ POST -> Root / "schema" / UUIDVar(schemaId) / "version" / UUIDVar(versionId) / "submit" =>
+      case req @ POST -> Root / "schema" / UUIDVar(
+            schemaId
+          ) / "version" / UUIDVar(versionId) / "submit" =>
         for {
           rawBody <- req.bodyText.compile.string
           _ <- new usecases.Submit[IO](repositories)
@@ -102,7 +108,9 @@ class Routes(repositories: Repositories[IO]) {
           response <- Created()
         } yield response
       // get all submissions associated with a specific version of the form
-      case GET -> Root / "schema" / UUIDVar(schemaId) / "version" / UUIDVar(versionId) / "submissions" =>
+      case GET -> Root / "schema" / UUIDVar(schemaId) / "version" / UUIDVar(
+            versionId
+          ) / "submissions" =>
         for {
           answers <- new usecases.GetSubmissionsForVersion[IO](repositories)
             .execute(schemaId, versionId)

@@ -8,7 +8,7 @@ import io.circe.parser.decode
 import java.util.UUID
 
 import fr.konexii.form.domain._
-import fr.konexii.form.domain.fields._
+import fr.konexii.form.domain.field._
 import fr.konexii.form.application.Repositories
 import fr.konexii.form.presentation.Serialization._
 

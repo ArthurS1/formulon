@@ -11,7 +11,8 @@ import scala.util.Try
 
 import fr.konexii.form.domain._
 import fr.konexii.form.domain.answer._
-import fr.konexii.form.domain.fields._
+import fr.konexii.form.domain.field._
+import fr.konexii.form.application._
 
 object Serialization
     extends EntityCirceInstances
@@ -22,25 +23,32 @@ object Serialization
 
 sealed trait FieldWithMetadataCirceInstances {
 
-  implicit val encoderForCommon: Encoder[FieldWithMetadata] =
+  def encoderForFieldWithMetadata(
+      c: Component[Field, Answer]
+  ): Encoder[FieldWithMetadata] =
     new Encoder[FieldWithMetadata] {
-      def apply(a: FieldWithMetadata): Json = Json.obj(
-        ("type", Json.fromString(Field.typeToString(a.field))),
-        ("data", a.field.asJson),
-        ("title", Json.fromString(a.title)),
-        ("required", Json.fromBoolean(a.required))
-      )
+      def apply(a: FieldWithMetadata): Json = {
+        Json.obj(
+          ("type", Json.fromString(c.typeStr)),
+          ("data", a.field.asJson(c.encoderForField)),
+          ("title", Json.fromString(a.title)),
+          ("required", Json.fromBoolean(a.required))
+        )
+      }
     }
 
-  implicit val decoderForCommon: Decoder[FieldWithMetadata] =
+  implicit val decoderForFieldWithMetadata: Decoder[FieldWithMetadata] =
     new Decoder[FieldWithMetadata] {
       def apply(c: HCursor): Decoder.Result[FieldWithMetadata] = {
         val type_ = c.downField("type")
 
         for {
           fieldType <- type_.as[String]
-          data <- c.downField("data").as[Json]
-          field <- Field.decoding(fieldType, data, type_.history)
+          component <- Either.fromOption(
+            Component.forType(fieldType),
+            DecodingFailure(s"Type \"$fieldType\" is unknown", c.history)
+          )
+          field <- c.downField("data").as[Field](component.decoderForField)
           title <- c.downField("title").as[String]
           required <- c.downField("required").as[Boolean]
         } yield FieldWithMetadata(title, required, field)
@@ -51,31 +59,26 @@ sealed trait FieldWithMetadataCirceInstances {
 
 sealed trait AnswerCirceInstances {
 
-  import answer.Text.decoderForText
-  import answer.Text.encoderForText
-
   implicit def decoderForAnswer: Decoder[Answer] =
     new Decoder[Answer] {
       def apply(c: HCursor): Decoder.Result[Answer] =
         for {
           responseType <- c.downField("type").as[String]
-          result <- responseType match {
-            case "text" => c.downField("data").as[answer.Text](decoderForText)
-            case _ => Left(DecodingFailure("No such response type.", c.history))
-          }
+          component <- Either.fromOption(
+            Component.forType(responseType),
+            DecodingFailure("No such response type.", c.history)
+          )
+          result <- c.downField("data").as[Answer](component.decoderForAnswer)
         } yield result
     }
 
-  implicit def encoderForAnswer: Encoder[Answer] =
+  def encoderForAnswer(c: Component[Field, Answer]): Encoder[Answer] =
     new Encoder[Answer] {
       def apply(a: Answer): Json =
-        a match {
-          case b @ answer.Text(value) =>
-            Json.obj(
-              ("type", Json.fromString("text")),
-              ("data", b.asJson(encoderForText))
-            )
-        }
+        Json.obj(
+          ("type", Json.fromString(c.typeStr)),
+          ("data", a.asJson(c.encoderForAnswer))
+        )
     }
 }
 

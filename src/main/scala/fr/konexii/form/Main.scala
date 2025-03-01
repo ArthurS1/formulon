@@ -1,6 +1,7 @@
 package fr.konexii.form
 
-import cats.data.OptionT
+import cats._
+import cats.data._
 import cats.implicits._
 import cats.effect._
 import cats.effect.std._
@@ -13,6 +14,10 @@ import org.http4s.ember.server._
 
 import fr.konexii.form.presentation.Routes
 import fr.konexii.form.presentation.Cli._
+import fr.konexii.form.application.Component
+import fr.konexii.form.domain.field.Field
+import fr.konexii.form.domain.answer.Answer
+import fr.konexii.form.application.component._
 
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger

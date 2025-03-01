@@ -6,7 +6,7 @@ import cats.syntax.all._
 
 import java.util.UUID
 
-import fr.konexii.form.domain.fields._
+import fr.konexii.form.domain.field._
 import fr.konexii.form.domain.answer._
 import fr.konexii.form.domain.SchemaTree._
 

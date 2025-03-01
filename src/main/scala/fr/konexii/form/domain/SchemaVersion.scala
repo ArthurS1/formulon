@@ -6,7 +6,7 @@ import cats.syntax.all._
 
 import java.time._
 
-import fr.konexii.form.domain.fields._
+import fr.konexii.form.domain.field._
 
 final case class SchemaVersion(
     date: LocalDateTime,

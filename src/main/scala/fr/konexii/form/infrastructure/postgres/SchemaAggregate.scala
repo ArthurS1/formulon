@@ -15,7 +15,7 @@ import java.util.UUID
 import shapeless.HNil
 
 import fr.konexii.form.domain._
-import fr.konexii.form.domain.fields._
+import fr.konexii.form.domain.field._
 import fr.konexii.form.application._
 import fr.konexii.form.presentation.Serialization._
 

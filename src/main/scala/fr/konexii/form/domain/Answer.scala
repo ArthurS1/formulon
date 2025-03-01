@@ -1,7 +1,5 @@
 package fr.konexii.form.domain.answer
 
-import io.circe._
-
 import fr.konexii.form.domain._
 
 /*
@@ -12,27 +10,6 @@ final case class Submission(
     answers: List[Entity[Answer]]
 )
 
-sealed trait Answer {}
-
-final case class Text(value: String) extends Answer
-
-object Text extends TextInstances
-
-sealed abstract private[answer] class TextInstances {
-
-  implicit val decoderForText: Decoder[Text] =
-    new Decoder[Text] {
-      def apply(c: HCursor): Decoder.Result[Text] =
-        for {
-          value <- c.downField("value").as[String]
-        } yield Text(value)
-    }
-
-  implicit val encoderForText: Encoder[Text] =
-    new Encoder[Text] {
-      def apply(a: Text): Json = Json.obj(
-        ("value", Json.fromString(a.value))
-      )
-    }
-
+trait Answer {
+  def typeStr: String
 }
