@@ -1,6 +1,7 @@
-val http4sVersion = "0.23.29"
+val http4sVersion = "0.23.30"
 val circeVersion = "0.14.10"
 val log4catsVersion = "2.7.0"
+val skunkVersion = "0.6.4"
 
 /*
  * I have to be honest here, everything that happens in this file is dark magic to me.
@@ -12,7 +13,7 @@ lazy val formulon = project
   .settings(
     name := "Formulon",
     version := "0.1",
-    scalaVersion := "2.13.15",
+    scalaVersion := "2.13.16",
     organization := "fr.konexii",
     scalacOptions ++= Seq(
       "-encoding", "utf8",
@@ -60,11 +61,11 @@ lazy val formulon = project
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
     // Logging
     libraryDependencies += "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
-    libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.16",
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.17",
     // Tracing
-    libraryDependencies += "org.tpolecat" %% "natchez-core" % "0.3.5",
+    libraryDependencies += "org.tpolecat" %% "natchez-core" % "0.3.7",
     // Postgres database access
-    libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.6.4",
+    libraryDependencies += "org.tpolecat" %% "skunk-core" % skunkVersion,
     // Inserting JSONs in postgres
-    libraryDependencies += "org.tpolecat" %% "skunk-circe" % "0.6.4",
+    libraryDependencies += "org.tpolecat" %% "skunk-circe" % skunkVersion,
   )
