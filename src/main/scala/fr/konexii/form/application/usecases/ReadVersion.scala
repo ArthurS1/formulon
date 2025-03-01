@@ -3,19 +3,18 @@ package fr.konexii.form.application.usecases
 import cats._
 import cats.syntax.all._
 
+import java.util.UUID
+
 import fr.konexii.form.domain._
-import fr.konexii.form.application.utils.uuid._
 import fr.konexii.form.application.Repositories
 
 class ReadVersion[F[_]: MonadThrow](respositories: Repositories[F]) {
 
-  def execute(schemaId: String, versionId: String): F[Entity[SchemaVersion]] =
+  def execute(schemaId: UUID, versionId: UUID): F[Entity[SchemaVersion]] =
     for {
-      schemaUuid <- schemaId.toUuid
-      versionUuid <- versionId.toUuid
-      schema <- respositories.schema.get(schemaUuid)
+      schema <- respositories.schema.get(schemaId)
       result <- MonadThrow[F].fromOption(
-        schema.data.versions.find(e => e.id === versionUuid),
+        schema.data.versions.find(e => e.id === versionId),
         new Exception(s"Failed to find schema version with id $versionId.")
       )
     } yield result

@@ -3,18 +3,17 @@ package fr.konexii.form.application.usecases
 import cats._
 import cats.syntax.all._
 
-import fr.konexii.form.application.utils.uuid._
+import java.util.UUID
+
 import fr.konexii.form.application.Repositories
 
 class SetActiveVersion[F[_]: MonadThrow](repositories: Repositories[F]) {
 
-  def execute(schemaId: String, versionId: String): F[Unit] =
+  def execute(schemaId: UUID, versionId: UUID): F[Unit] =
     for {
-      schemaUuid <- schemaId.toUuid
-      versionUuid <- versionId.toUuid
-      schema <- repositories.schema.get(schemaUuid)
+      schema <- repositories.schema.get(schemaId)
       version <- MonadThrow[F].fromOption(
-        schema.data.versions.find(_.id === versionUuid),
+        schema.data.versions.find(_.id === versionId),
         new Exception(s"Could not find version $versionId.")
       )
       _ <- repositories.schema.update(

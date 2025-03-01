@@ -10,10 +10,9 @@ import fr.konexii.form.application.Repositories
 
 class ReadSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
 
-  def execute(id: String): F[Entity[Schema]] =
+  def execute(id: UUID): F[Entity[Schema]] =
     for {
-      uuid <- MonadThrow[F].catchNonFatal(UUID.fromString(id))
-      result <- repositories.schema.get(uuid)
+      result <- repositories.schema.get(id)
     } yield result
 
 }

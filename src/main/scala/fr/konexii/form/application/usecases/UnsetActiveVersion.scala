@@ -3,15 +3,15 @@ package fr.konexii.form.application.usecases
 import cats._
 import cats.syntax.all._
 
-import fr.konexii.form.application.utils.uuid._
+import java.util.UUID
+
 import fr.konexii.form.application.Repositories
 
 class UnsetActiveVersion[F[_]: MonadThrow](repositories: Repositories[F]) {
 
-  def execute(id: String): F[Unit] =
+  def execute(id: UUID): F[Unit] =
     for {
-      uuid <- id.toUuid
-      schema <- repositories.schema.get(uuid)
+      schema <- repositories.schema.get(id)
       _ <- repositories.schema.update(
         schema.copy(data = schema.data.copy(active = None))
       )

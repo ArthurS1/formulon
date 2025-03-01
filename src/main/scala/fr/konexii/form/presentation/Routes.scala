@@ -31,34 +31,34 @@ class Routes(repositories: Repositories[IO]) {
           response <- Ok(newVersion)
         } yield response
       // return all available versions
-      case GET -> Root / "schema" / id / "version" =>
+      case GET -> Root / "schema" / UUIDVar(id) / "version" =>
         for {
           versions <- new usecases.ReadVersionList(repositories).execute(id)
           response <- Ok(versions)
         } yield response
       // return a specific version with its content
-      case GET -> Root / "schema" / id / "version" / versionId =>
+      case GET -> Root / "schema" / UUIDVar(id) / "version" / UUIDVar(versionId) =>
         for {
           version <- new usecases.ReadVersion(repositories)
             .execute(id, versionId)
           response <- Ok(version)
         } yield response
       // return active version schema
-      case GET -> Root / "schema" / id / "version" / "active" =>
+      case GET -> Root / "schema" / UUIDVar(id) / "version" / "active" =>
         for {
           activeVersion <- new usecases.ReadActiveVersion(repositories)
             .execute(id)
           response <- Ok(activeVersion)
         } yield response
       // update active version to the id
-      case PUT -> Root / "schema" / id / "version" / "active" / versionId =>
+      case PUT -> Root / "schema" / UUIDVar(id) / "version" / "active" / UUIDVar(versionId) =>
         for {
           _ <- new usecases.SetActiveVersion(repositories)
             .execute(id, versionId)
           response <- NoContent()
         } yield response
       // remove active version (shutdown the schema)
-      case DELETE -> Root / "schema" / id / "version" / "active" =>
+      case DELETE -> Root / "schema" / UUIDVar(id) / "version" / "active" =>
         new usecases.UnsetActiveVersion(repositories).execute(id) >> Accepted()
     }
 
@@ -73,13 +73,13 @@ class Routes(repositories: Repositories[IO]) {
           response <- Created(createdSchema)
         } yield response
       // get the schema with the id and its active version content
-      case GET -> Root / "schema" / id =>
+      case GET -> Root / "schema" / UUIDVar(id) =>
         for {
           schema <- new usecases.ReadSchema[IO](repositories).execute(id)
           response <- Ok(schema)
         } yield response
       // update the schema
-      case req @ PUT -> Root / "schema" / id =>
+      case req @ PUT -> Root / "schema" / UUIDVar(id) =>
         for {
           update <- req.as[UpdateSchemaRequest]
           updatedSchema <- new usecases.UpdateSchema[IO](repositories)
@@ -94,7 +94,7 @@ class Routes(repositories: Repositories[IO]) {
   val submissionRoutes = HttpRoutes
     .of[IO] {
       // submit answers to a form
-      case req @ POST -> Root / "schema" / schemaId / "version" / versionId / "submit" =>
+      case req @ POST -> Root / "schema" / UUIDVar(schemaId) / "version" / UUIDVar(versionId) / "submit" =>
         for {
           rawBody <- req.bodyText.compile.string
           _ <- new usecases.Submit[IO](repositories)
@@ -102,7 +102,7 @@ class Routes(repositories: Repositories[IO]) {
           response <- Created()
         } yield response
       // get all submissions associated with a specific version of the form
-      case GET -> Root / "schema" / schemaId / "version" / versionId / "submissions" =>
+      case GET -> Root / "schema" / UUIDVar(schemaId) / "version" / UUIDVar(versionId) / "submissions" =>
         for {
           answers <- new usecases.GetSubmissionsForVersion[IO](repositories)
             .execute(schemaId, versionId)
