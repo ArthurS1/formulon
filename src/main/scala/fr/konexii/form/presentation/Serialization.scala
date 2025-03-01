@@ -1,12 +1,9 @@
 package fr.konexii.form.presentation
 
-import cats._
 import cats.syntax.all._
 
 import io.circe._
 import io.circe.syntax._
-import io.circe.Json._
-import io.circe.parser.decode
 
 import java.util.UUID
 
@@ -17,11 +14,11 @@ import fr.konexii.form.domain.answer._
 import fr.konexii.form.domain.fields._
 
 object Serialization
-    extends SchemaTreeCirceInstances
-    with EntityCirceInstances
+    extends EntityCirceInstances
     with AnswerCirceInstances
     with SubmissionCirceInstances
     with FieldWithMetadataCirceInstances
+    with SchemaTreeCirceInstances
 
 sealed trait FieldWithMetadataCirceInstances {
 
@@ -151,7 +148,6 @@ sealed trait EntityCirceInstances {
 
 sealed trait SchemaTreeCirceInstances {
 
-  import Serialization.decoderForEntity
   import Serialization.encoderForEntity
 
   implicit def encoderForSchemaTree[A: Encoder]

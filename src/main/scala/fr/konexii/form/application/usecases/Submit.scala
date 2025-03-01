@@ -4,8 +4,6 @@ import cats._
 import cats.syntax.all._
 import cats.effect.std._
 
-import io.circe._
-import io.circe.syntax._
 import io.circe.parser.decode
 
 import fr.konexii.form.domain._

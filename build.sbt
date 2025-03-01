@@ -16,14 +16,17 @@ lazy val formulon = project
     organization := "fr.konexii",
     scalacOptions ++= Seq(
       "-encoding", "utf8",
-      "-deprecation",
-      //"-feature",
-      //"-unchecked",
-      //"-Xlint",
-      //"-Xfatal-warnings",
-      //"-Ywarn-dead-code",
-      //"-Ywarn-numeric-widen",
-      //"-Ywarn-value-discard"
+      "-Xlint",
+      "-Wunused:_",
+      "-Wdead-code",
+      "-Wnumeric-widen",
+      "-Wunnamed-boolean-literal",
+      "-Wnonunit-statement",
+      "-Wnonunit-if",
+      "-Wextra-implicit",
+      "-Wvalue-discard",
+      "-Wmacros:after",
+      "-Werror",
       ),
     assemblyMergeStrategy := {
       case PathList("META-INF", "versions", _*) => MergeStrategy.first
@@ -32,6 +35,10 @@ lazy val formulon = project
         oldStrategy(x)
       }
     },
+    console / initialCommands := """
+      println("Loading formulon into scope.")
+      import fr.konexii.form.domain._
+    """,
     assemblyJarName := s"formulon-${version.value}.jar",
     // Http4s specific configuration
     run / fork := true,

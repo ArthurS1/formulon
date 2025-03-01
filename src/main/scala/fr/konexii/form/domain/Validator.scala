@@ -70,9 +70,9 @@ object Validator {
       at: SchemaTree[Association]
   ): ValidatedNec[ValidatorError, List[Entity[Answer]]] =
     (requiredFieldsAnalysis(at), singlePathAnalysis(at).toValidatedNec).mapN {
-      case (answer, field) =>
+      case (_, _) =>
         at.foldLeft[List[Entity[Answer]]](List()) {
-          case (acc, (Some(answer), field)) => answer :: acc
+          case (acc, (Some(answer), _)) => answer :: acc
           case (acc, _)                     => acc
         }
     }
@@ -156,7 +156,6 @@ object Validator {
    */
 
   def validateText(
-      schema: FieldWithMetadata,
       rsp: answer.Text
   ): ValidatedNec[ValidatorError, Answer] = rsp.validNec
 

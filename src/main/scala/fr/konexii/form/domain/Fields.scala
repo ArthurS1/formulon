@@ -1,12 +1,7 @@
 package fr.konexii.form.domain.fields
 
-import cats._
-import cats.syntax.all._
-
 import io.circe._
 import io.circe.syntax._
-
-import java.util.UUID
 
 final case class FieldWithMetadata(
     title: String,

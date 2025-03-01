@@ -1,6 +1,5 @@
 package fr.konexii.form.application.utils
 
-import cats._
 import cats.data._
 import cats.syntax.all._
 

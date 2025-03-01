@@ -6,22 +6,13 @@ import skunk.implicits._
 import skunk.codec.all._
 import skunk.circe.codec.json.jsonb
 
-import fs2.Stream
-
-import cats._
 import cats.effect._
 import cats.syntax.all._
 import cats.instances.all._
 
-import io.circe.syntax._
-import io.circe.parser.decode
-
-import java.time.LocalDateTime
 import java.util.UUID
 
 import shapeless.HNil
-
-import skunk.data.Completion
 
 import fr.konexii.form.domain._
 import fr.konexii.form.domain.fields._
@@ -51,39 +42,43 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]])
 
   lazy val versionEntity: Decoder[Entity[SchemaVersion]] =
     (uuid ~ timestamp ~ uuid ~ jsonb[SchemaTree[Entity[FieldWithMetadata]]])
-      .map { case id ~ date ~ schemaId ~ content =>
+      .map { case id ~ date ~ _ ~ content =>
         Entity(id, SchemaVersion(date, content))
       }
 
-  def delete(id: UUID): F[Unit] = db.use { s =>
+  def delete(schema: Entity[Schema]): F[Unit] = db.use { s =>
     val schemaDeletion = sql"DELETE FROM schemas WHERE id = $uuid".command
-    for {
-      pc <- s.prepare(schemaDeletion)
-      c <- pc.execute(id)
-      result <- c match {
-        case Delete(count) if count < 1 =>
-          Async[F].raiseError(
-            new Exception(
-              s"Could not delete schema with id $id. (does the schema exist ?)"
+
+    s.transaction.use(_ =>
+      for {
+        _ <- schema.data.versions.map(version => deleteVersion(version, s)).sequence_
+        pc <- s.prepare(schemaDeletion)
+        c <- pc.execute(schema.id)
+        result <- c match {
+          case Delete(count) if count < 1 =>
+            Async[F].raiseError(
+              new Exception(
+                s"Could not delete schema with id ${schema.id}. (does the schema exist ?)"
+              )
             )
-          )
-        case _ => Async[F].unit
-      }
-    } yield result
+          case _ => Async[F].unit
+        }
+      } yield result
+    )
   }
 
-  private def deleteVersion(id: UUID, s: Session[F]): F[Unit] = {
+  private def deleteVersion(version: Entity[SchemaVersion], s: Session[F]): F[Unit] = {
     val versionDeletion =
       sql"DELETE FROM schema_versions WHERE schema_id = $uuid".command
 
     for {
       pc <- s.prepare(versionDeletion)
-      c <- pc.execute(id)
+      c <- pc.execute(version.id)
       result <- c match {
         case Delete(count) if count < 1 =>
           Async[F].raiseError(
             new Exception(
-              s"Could not delete schema version with id $id. (does the version exist ?)"
+              s"Could not delete schema version with id ${version.id}. (does the version exist ?)"
             )
           )
         case _ => Async[F].unit
@@ -92,7 +87,7 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]])
   }
 
   def create(schema: Entity[Schema]): F[Entity[Schema]] = db.use { s =>
-    s.transaction.use(f =>
+    s.transaction.use(_ =>
       for {
         versions <- schema.data.versions.traverse(v =>
           createVersion(v, s, schema.id)
@@ -114,7 +109,7 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]])
       sql"SELECT id, date, schema_id, content FROM schema_versions WHERE schema_id = $uuid"
         .query(versionEntity)
 
-    s.transaction.use(f =>
+    s.transaction.use(_ =>
       for {
         preparedVersionsQuery <- s.prepare(versionQuery)
         currentVersions <-
@@ -162,7 +157,7 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]])
       sql"SELECT id, date, schema_id, content FROM schema_versions WHERE schema_id = $uuid"
         .query(versionEntity)
 
-    s.transaction.use(f =>
+    s.transaction.use(_ =>
       for {
         preparedVersionsQuery <- s.prepare(versionQuery)
         versions <- preparedVersionsQuery

@@ -1,9 +1,6 @@
 package fr.konexii.form.domain.answer
 
 import io.circe._
-import io.circe.syntax._
-import io.circe.parser.decode
-import io.circe.Decoder.decodeList
 
 import fr.konexii.form.domain._
 

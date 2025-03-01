@@ -5,8 +5,6 @@ import cats.syntax.all._
 
 import shapeless.HNil
 
-import io.circe.syntax._
-
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
@@ -24,7 +22,7 @@ class SubmissionAggregate[F[_]: Async](db: Resource[F, Session[F]])
 
   lazy val submissionEntity: Decoder[Entity[Submission]] = {
     (uuid ~ uuid ~ jsonb[List[Entity[Answer]]]).map {
-      case id ~ versionId ~ answers => Entity(id, Submission(answers))
+      case id ~ _ ~ answers => Entity(id, Submission(answers))
     }
   }
 
@@ -36,7 +34,7 @@ class SubmissionAggregate[F[_]: Async](db: Resource[F, Session[F]])
       sql"INSERT INTO answers VALUES ($uuid, $uuid, ${jsonb[List[Entity[Answer]]]}) RETURNING *"
         .query(submissionEntity)
 
-    s.transaction.use(f =>
+    s.transaction.use(_ =>
       for {
         pc <- s.prepare(submissionInsertion)
         result <- pc.unique(

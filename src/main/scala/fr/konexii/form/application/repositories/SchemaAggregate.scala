@@ -10,7 +10,7 @@ trait SchemaAggregate[F[_]] {
 
   def create(schema: Entity[Schema]): F[Entity[Schema]]
 
-  def delete(id: UUID): F[Unit]
+  def delete(schema: Entity[Schema]): F[Unit]
 
   def update(schema: Entity[Schema]): F[Entity[Schema]]
 

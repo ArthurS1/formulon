@@ -1,7 +1,6 @@
 package fr.konexii.form.application.utils
 
 import cats._
-import cats.syntax.all._
 
 import java.util.UUID
 

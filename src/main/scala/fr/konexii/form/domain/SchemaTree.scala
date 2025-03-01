@@ -60,7 +60,7 @@ sealed abstract class SchemaTreeInstances {
         case Trunk(content, next) => foldRight(next, f(content, lb))(f)
         case Branch(content, next, out) => {
           val a = foldRight(next, f(content, lb))(f)
-          foldRight(out, lb)(f)
+          foldRight(out, a)(f)
         }
       }
     }

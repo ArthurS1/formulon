@@ -3,8 +3,6 @@ package fr.konexii.form.application.repositories
 import fr.konexii.form.domain._
 import fr.konexii.form.domain.answer._
 
-import java.util.UUID
-
 trait SubmissionAggregate[F[_]] {
 
   def create(

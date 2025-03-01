@@ -1,7 +1,6 @@
 package fr.konexii.form.domain
 
 import cats._
-import cats.effect._
 import cats.effect.std.UUIDGen
 
 import java.util.UUID

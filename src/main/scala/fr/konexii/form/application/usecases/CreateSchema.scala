@@ -1,7 +1,6 @@
 package fr.konexii.form.application.usecases
 
 import cats._
-import cats.data._
 import cats.syntax.all._
 import cats.effect.std.UUIDGen
 
