@@ -1,5 +1,7 @@
 package fr.konexii.form
 
+import scala.jdk.CollectionConverters._
+
 import cats.data.OptionT
 import cats.implicits._
 import cats.effect._
@@ -13,6 +15,9 @@ import org.http4s.ember.server._
 
 import fr.konexii.form.presentation.Routes
 import fr.konexii.form.presentation.Cli._
+import fr.konexii.application.Plugin
+
+import java.util.ServiceLoader
 
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -29,8 +34,9 @@ object Main extends IOApp {
           .map(_ => ExitCode(0))
       case conf: Valid =>
         infos(conf) >>
+          pluginsLoader() >>
           optionParser(conf) >>=
-          serverTupled(conf)
+          (server(conf) _).tupled
       case Invalid(msg) =>
         Console[IO]
           .errorln(s"Configuration error: $msg")
@@ -50,7 +56,16 @@ object Main extends IOApp {
       case _ => IO.raiseError(new RuntimeException("Failed to parse options."))
     }
 
-  def serverTupled(conf: Valid) = (server(conf) _).tupled
+  def pluginsLoader(): IO[List[Plugin]] =
+    IO.delay(
+      ServiceLoader.load(classOf[Plugin]).iterator().asScala.toList
+    ).flatMap(plugins =>
+      (if (plugins.isEmpty)
+         IO.println("No plugins loaded")
+       else
+         IO.println(s"Loaded plugins: ${plugins.map(_.name).mkString(", ")} "))
+        >> IO(plugins)
+    )
 
   def server(conf: Valid)(port: Port, ip: IpAddress): IO[ExitCode] = {
     EmberServerBuilder

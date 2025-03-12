@@ -8,8 +8,54 @@ val skunkVersion = "0.6.4"
  * Any review is appreciated.
  */
 
+lazy val shared = project
+  .in(file("shared"))
+  .settings(
+    name := "Shared",
+    scalaVersion := "2.13.16",
+    organization := "fr.konexii",
+    scalacOptions ++= Seq(
+      "-encoding", "utf8",
+      "-Xlint",
+      "-Wunused:_",
+      "-Wdead-code",
+      "-Wnumeric-widen",
+      "-Wunnamed-boolean-literal",
+      "-Wnonunit-statement",
+      "-Wnonunit-if",
+      "-Wextra-implicit",
+      "-Wvalue-discard",
+      "-Wmacros:after",
+      "-Werror",
+      ),
+  )
+
+lazy val pluginExample = project
+  .in(file("plugin-example"))
+  .dependsOn(shared)
+  .settings(
+    name := "Plugin Example",
+    scalaVersion := "2.13.16",
+    organization := "fr.konexii",
+    scalacOptions ++= Seq(
+      "-encoding", "utf8",
+      "-Xlint",
+      "-Wunused:_",
+      "-Wdead-code",
+      "-Wnumeric-widen",
+      "-Wunnamed-boolean-literal",
+      "-Wnonunit-statement",
+      "-Wnonunit-if",
+      "-Wextra-implicit",
+      "-Wvalue-discard",
+      "-Wmacros:after",
+      "-Werror",
+      ),
+  )
+
 lazy val formulon = project
-  .in(file("."))
+  .in(file("app"))
+  .dependsOn(shared)
   .settings(
     name := "Formulon",
     version := "0.1",
@@ -62,7 +108,7 @@ lazy val formulon = project
     // Logging
     libraryDependencies += "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
     libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.17",
-    // Tracing
+    // Tracing (necessary for skunk at this point, should be replaced by otel)
     libraryDependencies += "org.tpolecat" %% "natchez-core" % "0.3.7",
     // Postgres database access
     libraryDependencies += "org.tpolecat" %% "skunk-core" % skunkVersion,
