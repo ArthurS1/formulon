@@ -1,0 +1,26 @@
+Formulon BETA goals
+
+> List of properties the software should have
+
+MUST have a stable JSON API for managing versions and schemas.
+MUST have a plugin support to add more schema fields.
+MUST have an API to advertise which plugins are used by the instance.
+MUST authenticate and authorize requests depending on user permissions.
+MUST have a documentation detailing usage but MUST NOT explain to an uneducated user (aimed at people with experience installing software).
+MUST have the built in form fields:
+  - text field (text of arbitrary length)
+  - multi-choice field (choices with arbitrary number of choices)
+
+MAY have a scalaJS artifact to check schema validation on client.
+
+Formulon matcher plans
+
+					Text("Yo") + Field("entrez qqch", not required, Text())
+						                      |
+								True + TextMatch("Yo", HEAD~) <--- This is actually a special field, filled by the form itself
+								    /   \
+Select(1, 2) + Field("select", required, Select("choix 1", "choix 2"))  ...
+				|
+			True + SelectMatch(1, <UUID>) <- Reference to the value to match can be either relative or absolute with a UUID
+			      /   \                       (or maybe not, it looks useless to have a relative value considering the editor will do all)
+			    ... + ...
