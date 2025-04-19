@@ -8,7 +8,7 @@ import java.util.UUID
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application.Repositories
 
-class ReadSchema[F[_]: MonadThrow](repositories: Repositories[F]) {
+class ReadBlueprint[F[_]: MonadThrow](repositories: Repositories[F]) {
 
   def execute(id: UUID): F[Entity[Blueprint]] =
     for {

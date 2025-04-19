@@ -12,14 +12,15 @@ object Cli {
   sealed trait Conf
 
   case class Valid(
-      val port: Int = 8080,
-      val ip: String = "0.0.0.0",
-      val help: Boolean = false,
-      val dbHost: String = "localhost",
-      val dbDatabase: String = "formulon",
-      val dbPort: Int = 5432,
-      val dbUser: String = "formulon",
-      val dbPass: String = "test"
+      port: Int = 8080,
+      ip: String = "0.0.0.0",
+      help: Boolean = false,
+      dbHost: String = "localhost",
+      dbDatabase: String = "formulon",
+      dbPort: Int = 5432,
+      dbUser: String = "formulon",
+      dbPass: String = "test",
+      secretKey: String = ""
   ) extends Conf
 
   case class Invalid(
@@ -52,6 +53,8 @@ object Cli {
             .map((port: Int) => conf.copy(dbPort = port))
             .getOrElse(Invalid("Database port is incorrect."))
         )
+      case (("--key") :: v :: xs, conf: Valid) =>
+        argParser(xs, conf.copy(secretKey = v))
       case (Nil, conf: Valid) => conf
       case _                  => Invalid()
     }

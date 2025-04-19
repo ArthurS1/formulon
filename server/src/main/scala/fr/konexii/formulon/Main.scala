@@ -2,7 +2,7 @@ package fr.konexii.formulon
 
 import scala.jdk.CollectionConverters._
 
-import cats.data.OptionT
+import cats.data._
 import cats.implicits._
 import cats.effect._
 import cats.effect.std._
@@ -10,18 +10,18 @@ import cats.effect.std._
 import com.comcast.ip4s.{Port, IpAddress}
 
 import org.http4s._
-import org.http4s.server.middleware.{Logger => LoggerMidleware, _}
 import org.http4s.ember.server._
+import org.http4s.server.middleware.{Logger => LoggerMidleware, _}
 
 import fr.konexii.formulon.presentation.Routes
 import fr.konexii.formulon.presentation.Cli._
 import fr.konexii.formulon.application.Plugin
+import fr.konexii.formulon.builtins.Text.Text
 
 import java.util.ServiceLoader
 
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import fr.konexii.formulon.builtins.Text.Text
 
 object Main extends IOApp {
 
@@ -63,9 +63,13 @@ object Main extends IOApp {
       ServiceLoader.load(classOf[Plugin]).iterator().asScala.toList
     ).flatMap(plugins =>
       (if (plugins.isEmpty)
-         IO.println(s"No external plugins loaded. Builtins: ${builtinPlugins.map(_.name).mkString(", ")}")
+         IO.println(
+           s"No external plugins loaded. Builtins: ${builtinPlugins.map(_.name).mkString(", ")}"
+         )
        else
-         IO.println(s"Loaded plugins: ${(plugins ++ builtinPlugins).map(_.name).mkString(", ")}."))
+         IO.println(
+           s"Loaded plugins: ${(plugins ++ builtinPlugins).map(_.name).mkString(", ")}."
+         ))
         >> IO(plugins)
     )
 
@@ -82,7 +86,7 @@ object Main extends IOApp {
       .withHost(ip)
       .withPort(port)
       .withHttpApp(
-        middleware(
+        middlewares(
           new Routes(
             new infrastructure.PostgresRepositories[IO](
               conf.dbHost,
@@ -92,8 +96,9 @@ object Main extends IOApp {
               conf.dbPass,
               plugins
             ),
-            plugins
-          ).routes
+            plugins,
+            conf.secretKey
+          ).routes,
         ).orNotFound
       )
       .build
@@ -101,7 +106,7 @@ object Main extends IOApp {
       .as(ExitCode.Success)
   }
 
-  def middleware(routes: HttpRoutes[IO]): HttpRoutes[IO] =
+  def middlewares(routes: HttpRoutes[IO]): HttpRoutes[IO] =
     LoggerMidleware.httpRoutes[IO](
       logHeaders = true,
       logBody = true
@@ -115,6 +120,7 @@ object Main extends IOApp {
           } yield Response[IO](status = Status.InternalServerError)
         )
       }
+
     )
 
 }
