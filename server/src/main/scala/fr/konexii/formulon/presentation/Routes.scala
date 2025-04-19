@@ -13,6 +13,7 @@ import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
 import fr.konexii.formulon.application.dtos._
 import fr.konexii.formulon.presentation.Serialization._
+import org.http4s.server.AuthMiddleware
 
 class Routes(repositories: Repositories[IO], plugins: List[Plugin]) {
 
@@ -65,11 +66,10 @@ class Routes(repositories: Repositories[IO], plugins: List[Plugin]) {
         new usecases.UnsetActiveVersion(repositories).execute(id) >> Accepted()
     }
 
-
-  val schemaRoutes = HttpRoutes
-    .of[IO] {
+  val blueprintRoutes: AuthedRoutes[List[String], IO] =
+    AuthedRoutes.of {
       // create a schema
-      case req @ POST -> Root / "schema" =>
+      case req @ POST -> Root / "schema" as perm =>
         for {
           newSchema <- req.as[CreateSchemaRequest]
           createdSchema <- new usecases.CreateSchema(repositories)
@@ -77,13 +77,13 @@ class Routes(repositories: Repositories[IO], plugins: List[Plugin]) {
           response <- Created(createdSchema)
         } yield response
       // get the schema with the id and its active version content
-      case GET -> Root / "schema" / UUIDVar(id) =>
+      case GET -> Root / "schema" / UUIDVar(id) as perm =>
         for {
           schema <- new usecases.ReadSchema[IO](repositories).execute(id)
           response <- Ok(schema)
         } yield response
       // update the schema
-      case req @ PUT -> Root / "schema" / UUIDVar(id) =>
+      case req @ PUT -> Root / "schema" / UUIDVar(id) as perm =>
         for {
           update <- req.as[UpdateSchemaRequest]
           updatedSchema <- new usecases.UpdateSchema[IO](repositories)
@@ -91,7 +91,7 @@ class Routes(repositories: Repositories[IO], plugins: List[Plugin]) {
           response <- Ok(updatedSchema)
         } yield response
       // delete the schema
-      case DELETE -> Root / "schema" / UUIDVar(id) =>
+      case DELETE -> Root / "schema" / UUIDVar(id) as perm =>
         new usecases.DeleteSchema[IO](repositories).execute(id) >> NoContent()
     }
 
@@ -115,6 +115,6 @@ class Routes(repositories: Repositories[IO], plugins: List[Plugin]) {
     }
 
   val routes =
-    submissionRoutes <+> schemaRoutes <+>  versionRoutes <+> infrastructureRoutes
+    submissionRoutes <+> blueprintRoutes <+>  versionRoutes <+> infrastructureRoutes
 
 }

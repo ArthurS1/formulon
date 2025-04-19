@@ -2,7 +2,7 @@ package fr.konexii.formulon
 
 import scala.jdk.CollectionConverters._
 
-import cats.data.OptionT
+import cats.data._
 import cats.implicits._
 import cats.effect._
 import cats.effect.std._
@@ -10,18 +10,22 @@ import cats.effect.std._
 import com.comcast.ip4s.{Port, IpAddress}
 
 import org.http4s._
-import org.http4s.server.middleware.{Logger => LoggerMidleware, _}
 import org.http4s.ember.server._
+import org.http4s.server.middleware.{Logger => LoggerMidleware, _}
+import org.http4s.server.AuthMiddleware
+import org.http4s.headers.Authorization
 
 import fr.konexii.formulon.presentation.Routes
 import fr.konexii.formulon.presentation.Cli._
 import fr.konexii.formulon.application.Plugin
+import fr.konexii.formulon.builtins.Text.Text
+import fr.konexii.formulon.application.Role
+import fr.konexii.formulon.infrastructure.Jwt
 
 import java.util.ServiceLoader
 
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import fr.konexii.formulon.builtins.Text.Text
 
 object Main extends IOApp {
 
@@ -63,9 +67,13 @@ object Main extends IOApp {
       ServiceLoader.load(classOf[Plugin]).iterator().asScala.toList
     ).flatMap(plugins =>
       (if (plugins.isEmpty)
-         IO.println(s"No external plugins loaded. Builtins: ${builtinPlugins.map(_.name).mkString(", ")}")
+         IO.println(
+           s"No external plugins loaded. Builtins: ${builtinPlugins.map(_.name).mkString(", ")}"
+         )
        else
-         IO.println(s"Loaded plugins: ${(plugins ++ builtinPlugins).map(_.name).mkString(", ")}."))
+         IO.println(
+           s"Loaded plugins: ${(plugins ++ builtinPlugins).map(_.name).mkString(", ")}."
+         ))
         >> IO(plugins)
     )
 
@@ -114,6 +122,31 @@ object Main extends IOApp {
             )
           } yield Response[IO](status = Status.InternalServerError)
         )
+      }
+    )
+
+  val roleMiddleware: AuthMiddleware[IO, Role] =
+    AuthMiddleware(getRole)
+
+  val key: String = ???
+
+  type OptionTIO[A] = OptionT[IO, A]
+
+  val getRole: Kleisli[OptionTIO, Request[IO], Role] =
+    Kleisli(request =>
+      request.headers.get[Authorization] match {
+        case Some(Authorization(Credentials.Token(AuthScheme.Bearer, token))) =>
+          OptionT.fromOption(Jwt.decodeJwt(token, key))
+        case _ => {
+          for {
+            _ <- OptionT.liftF(
+              Logger[IO].warn(
+                "Failure to find the credential within the Authorization header of the request."
+              )
+            )
+            none <- OptionT.none[IO, Role]
+          } yield none
+        }
       }
     )
 

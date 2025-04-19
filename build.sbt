@@ -94,6 +94,8 @@ lazy val server = project
       "org.tpolecat" %% "skunk-core",
       "org.tpolecat" %% "skunk-circe"
     ).map(_ % skunkVersion),
+    // JWTs
+    libraryDependencies += "com.github.jwt-scala" %% "jwt-circe" % "10.0.4",
     // Logging
     libraryDependencies += "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
     libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.17",
