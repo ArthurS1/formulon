@@ -15,14 +15,14 @@ class DeleteBlueprint[F[_]: MonadThrow: Logger](repositories: Repositories[F]) {
 
   def execute(id: UUID, role: Role): F[Unit] =
     for {
-      blueprint <- repositories.schema.get(id)
+      blueprint <- repositories.blueprint.get(id)
       _ <- authorize(blueprint, role)
-      result <- repositories.schema.delete(blueprint)
+      result <- repositories.blueprint.delete(blueprint)
     } yield result
 
   private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
     role match {
-      case Admin() => Logger[F].info(s"Admin deleted blueprint $blueprint.")
+      case Admin() => Logger[F].info(s"Admin deleted blueprint ${blueprint.id}.")
       case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
@@ -30,7 +30,7 @@ class DeleteBlueprint[F[_]: MonadThrow: Logger](repositories: Repositories[F]) {
           )
         )
       case Org(orgName, identifier) =>
-        Logger[F].info(s"$identifier deleted blueprint $blueprint.")
+        Logger[F].info(s"$identifier deleted blueprint ${blueprint.id}.")
     }
 
 }

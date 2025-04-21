@@ -15,13 +15,13 @@ class ReadBlueprint[F[_]: MonadThrow : Logger](repositories: Repositories[F]) {
 
   def execute(id: UUID, role: Role): F[Entity[Blueprint]] =
     for {
-      result <- repositories.schema.get(id)
+      result <- repositories.blueprint.get(id)
       _ <- authorize(result, role)
     } yield result
 
   private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
     role match {
-      case Admin() => Logger[F].info(s"Admin updated blueprint $blueprint.")
+      case Admin() => Logger[F].info(s"Admin updated blueprint ${blueprint.id}.")
       case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
@@ -29,7 +29,7 @@ class ReadBlueprint[F[_]: MonadThrow : Logger](repositories: Repositories[F]) {
           )
         )
       case Org(orgName, identifier) =>
-        Logger[F].info(s"$identifier updated blueprint $blueprint.")
+        Logger[F].info(s"$identifier updated blueprint ${blueprint.id}.")
     }
 
 }

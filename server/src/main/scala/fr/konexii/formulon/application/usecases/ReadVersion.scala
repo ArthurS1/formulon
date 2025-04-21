@@ -6,17 +6,43 @@ import cats.syntax.all._
 import java.util.UUID
 
 import fr.konexii.formulon.domain._
-import fr.konexii.formulon.application.Repositories
+import fr.konexii.formulon.application._
+import fr.konexii.formulon.application.utils.UnauthorizedException
 
-class ReadVersion[F[_]: MonadThrow](respositories: Repositories[F]) {
+import org.typelevel.log4cats.Logger
 
-  def execute(schemaId: UUID, versionId: UUID): F[Entity[Version]] =
+class ReadVersion[F[_]: MonadThrow: Logger](respositories: Repositories[F]) {
+
+  def execute(schemaId: UUID, versionId: UUID, role: Role): F[Entity[Version]] =
     for {
-      schema <- respositories.schema.get(schemaId)
+      blueprint <- respositories.blueprint.get(schemaId)
       result <- MonadThrow[F].fromOption(
-        schema.data.versions.find(e => e.id === versionId),
+        blueprint.data.versions.find(e => e.id === versionId),
         new Exception(s"Failed to find schema version with id $versionId.")
       )
+      _ <- authorize(blueprint, result, role)
     } yield result
+
+  private def authorize(
+      blueprint: Entity[Blueprint],
+      version: Entity[Version],
+      role: Role
+  ): F[Unit] =
+    role match {
+      case Admin() =>
+        Logger[F].info(
+          s"Admin read ${version.id} on blueprint ${blueprint.id}."
+        )
+      case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
+        MonadThrow[F].raiseError[Unit](
+          new UnauthorizedException(
+            s"$identifier unauthorized to set active version on blueprint ${blueprint.id}."
+          )
+        )
+      case Org(orgName, identifier) =>
+        Logger[F].info(
+          s"$identifier read ${version.id} on blueprint ${blueprint.id}."
+        )
+    }
 
 }

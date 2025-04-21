@@ -28,7 +28,7 @@ class CreateBlueprint[F[_]: MonadThrow: UUIDGen: Logger](
         Blueprint(name = newSchemaRequest.name, orgName = orgName)
           .leftMap(CompositeException)
       )
-      newBlueprintEntity <- repositories.schema.create(
+      newBlueprintEntity <- repositories.blueprint.create(
         Entity(uuid, newBlueprint)
       )
     } yield newBlueprintEntity

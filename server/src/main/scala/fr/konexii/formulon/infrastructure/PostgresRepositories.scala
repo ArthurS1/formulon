@@ -34,8 +34,8 @@ final class PostgresRepositories[F[_]: Async: Console](
       password = Some(password)
     )
 
-  lazy val schema: repositories.SchemaAggregate[F] =
-    new postgres.SchemaAggregate(session, plugins)
+  lazy val blueprint: repositories.BlueprintAggregate[F] =
+    new postgres.BlueprintAggregate(session, plugins)
 
   lazy val submission: repositories.SubmissionAggregate[F] =
     new postgres.SubmissionAggregate(session, plugins)

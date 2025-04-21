@@ -12,7 +12,7 @@ class ReadActiveVersion[F[_]: MonadThrow](repositories: Repositories[F]) {
 
   def execute(id: UUID): F[Entity[Version]] =
     for {
-      schema <- repositories.schema.get(id)
+      schema <- repositories.blueprint.get(id)
       activeVersion <- MonadThrow[F].fromOption(
         schema.data.active,
         new Exception(s"No active version for schema with id $id.")

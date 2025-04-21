@@ -19,31 +19,41 @@ import fr.konexii.formulon.application._
 import fr.konexii.formulon.presentation.Serialization._
 import fr.konexii.formulon.application.Plugin
 
-class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]], plugins: List[Plugin])
-    extends repositories.SchemaAggregate[F] {
+class BlueprintAggregate[F[_]: Async](
+    db: Resource[F, Session[F]],
+    plugins: List[Plugin]
+) extends repositories.BlueprintAggregate[F] {
 
-  private implicit val fieldDecoder: io.circe.Decoder[FieldWithMetadata] =
+  implicit val answerDecoder: io.circe.Decoder[Answer] = decoderForAnswer(
+    plugins
+  )
+
+  implicit val answerEncoder: io.circe.Encoder[Answer] = encoderForAnswer(
+    plugins
+  )
+
+  implicit val fieldDecoder: io.circe.Decoder[FieldWithMetadata] =
     decoderForFieldWithMetadata(plugins)
 
-  private implicit val fieldEncoder: io.circe.Encoder[FieldWithMetadata] =
+  implicit val fieldEncoder: io.circe.Encoder[FieldWithMetadata] =
     encoderForFieldWithMetadata(plugins)
 
   private val chunkSize = 64
 
-  private def schemaEntity(
+  private def blueprintEntity(
       versions: List[Entity[Version]]
   ): Decoder[Entity[Blueprint]] =
-    (uuid ~ varchar(80) ~ uuid.opt).emap { case id ~ name ~ activeId =>
+    (uuid ~ varchar(80) ~ uuid.opt ~ varchar(80)).emap { case id ~ name ~ activeId ~ orgName =>
       for {
         activeVersion <- activeId
           .map(activeId =>
             Either.fromOption(
               versions.find(e => e.id === activeId),
-              s"Could not find the active schema version with id ${activeId.toString}."
+              s"Could not find the active blueprint version with id ${activeId.toString}."
             )
           )
           .sequence
-      } yield Entity(id, Blueprint(name, versions, activeVersion))
+      } yield Entity(id, Blueprint(name, orgName, versions, activeVersion))
     }
 
   lazy val versionEntity: Decoder[Entity[Version]] =
@@ -52,19 +62,21 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]], plugins: List[Pl
         Entity(id, Version(date, content))
       }
 
-  def delete(schema: Entity[Blueprint]): F[Unit] = db.use { s =>
-    val schemaDeletion = sql"DELETE FROM schemas WHERE id = $uuid".command
+  def delete(blueprint: Entity[Blueprint]): F[Unit] = db.use { s =>
+    val blueprintDeletion = sql"DELETE FROM schemas WHERE id = $uuid".command
 
     s.transaction.use(_ =>
       for {
-        _ <- schema.data.versions.map(version => deleteVersion(version, s)).sequence_
-        pc <- s.prepare(schemaDeletion)
-        c <- pc.execute(schema.id)
+        _ <- blueprint.data.versions
+          .map(version => deleteVersion(version, s))
+          .sequence_
+        pc <- s.prepare(blueprintDeletion)
+        c <- pc.execute(blueprint.id)
         result <- c match {
           case Delete(count) if count < 1 =>
             Async[F].raiseError(
               new Exception(
-                s"Could not delete schema with id ${schema.id}. (does the schema exist ?)"
+                s"Could not delete schema with id ${blueprint.id}. (does the schema exist ?)"
               )
             )
           case _ => Async[F].unit
@@ -73,7 +85,10 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]], plugins: List[Pl
     )
   }
 
-  private def deleteVersion(version: Entity[Version], s: Session[F]): F[Unit] = {
+  private def deleteVersion(
+      version: Entity[Version],
+      s: Session[F]
+  ): F[Unit] = {
     val versionDeletion =
       sql"DELETE FROM schema_versions WHERE schema_id = $uuid".command
 
@@ -92,25 +107,25 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]], plugins: List[Pl
     } yield result
   }
 
-  def create(schema: Entity[Blueprint]): F[Entity[Blueprint]] = db.use { s =>
+  def create(blueprint: Entity[Blueprint]): F[Entity[Blueprint]] = db.use { s =>
     s.transaction.use(_ =>
       for {
-        versions <- schema.data.versions.traverse(v =>
-          createVersion(v, s, schema.id)
+        versions <- blueprint.data.versions.traverse(v =>
+          createVersion(v, s, blueprint.id)
         )
-        schemaInsertion =
+        blueprintInsertion =
           sql"INSERT INTO schemas VALUES ($uuid, $varchar, ${uuid.opt}) RETURNING *"
-            .query(schemaEntity(versions))
-        pc <- s.prepare(schemaInsertion)
+            .query(blueprintEntity(versions))
+        pc <- s.prepare(blueprintInsertion)
         result <- pc.unique(
-          schema.id :: schema.data.name :: schema.data.active
+          blueprint.id :: blueprint.data.name :: blueprint.data.active
             .map(_.id) :: HNil
         )
       } yield result
     )
   }
 
-  def update(schema: Entity[Blueprint]): F[Entity[Blueprint]] = db.use { s =>
+  def update(blueprint: Entity[Blueprint]): F[Entity[Blueprint]] = db.use { s =>
     val versionQuery =
       sql"SELECT id, date, schema_id, content FROM schema_versions WHERE schema_id = $uuid"
         .query(versionEntity)
@@ -120,29 +135,29 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]], plugins: List[Pl
         preparedVersionsQuery <- s.prepare(versionQuery)
         currentVersions <-
           preparedVersionsQuery
-            .stream(schema.id, chunkSize)
+            .stream(blueprint.id, chunkSize)
             .compile
             .toList
-        updatedVersions <- schema.data.versions.traverse(v =>
+        updatedVersions <- blueprint.data.versions.traverse(v =>
           currentVersions.find(_.id === v.id) match {
-            case None          => createVersion(v, s, schema.id)
+            case None          => createVersion(v, s, blueprint.id)
             case Some(version) => Async[F].pure(version)
           }
         )
-        schemaQuery = sql"UPDATE schemas SET name = ${varchar(80)}, active_schema_id = ${uuid.opt} WHERE id = $uuid RETURNING *"
-          .query(schemaEntity(updatedVersions))
-        preparedSchemaQuery <- s.prepare(schemaQuery)
-        schema <- preparedSchemaQuery.unique(
-          schema.data.name *: schema.data.active.map(_.id) *: schema.id *: HNil
+        blueprintQuery = sql"UPDATE schemas SET name = ${varchar(80)}, active_schema_id = ${uuid.opt} WHERE id = $uuid RETURNING *"
+          .query(blueprintEntity(updatedVersions))
+        preparedBlueprintQuery <- s.prepare(blueprintQuery)
+        blueprint <- preparedBlueprintQuery.unique(
+          blueprint.data.name *: blueprint.data.active.map(_.id) *: blueprint.id *: HNil
         )
-      } yield schema
+      } yield blueprint
     )
   }
 
   private def createVersion(
       version: Entity[Version],
       s: Session[F],
-      schemaId: UUID
+      blueprintId: UUID
   ): F[Entity[Version]] = {
     val versionInsertion =
       sql"INSERT INTO schema_versions VALUES ($uuid, $timestamp, $uuid, ${jsonb[Tree[
@@ -153,7 +168,7 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]], plugins: List[Pl
     for {
       pc <- s.prepare(versionInsertion)
       result <- pc.unique(
-        version.id *: version.data.date *: schemaId *: version.data.content *: HNil
+        version.id *: version.data.date *: blueprintId *: version.data.content *: HNil
       )
     } yield result
   }
@@ -170,12 +185,12 @@ class SchemaAggregate[F[_]: Async](db: Resource[F, Session[F]], plugins: List[Pl
           .stream(id, chunkSize)
           .compile
           .toList
-        schemaQuery =
+        blueprintQuery =
           sql"SELECT id, name, active_schema_id FROM schemas WHERE id = $uuid"
-            .query(schemaEntity(versions))
-        preparedSchemaQuery <- s.prepare(schemaQuery)
-        schema <- preparedSchemaQuery.unique(id)
-      } yield schema
+            .query(blueprintEntity(versions))
+        preparedBlueprintQuery <- s.prepare(blueprintQuery)
+        blueprint <- preparedBlueprintQuery.unique(id)
+      } yield blueprint
     )
   }
 

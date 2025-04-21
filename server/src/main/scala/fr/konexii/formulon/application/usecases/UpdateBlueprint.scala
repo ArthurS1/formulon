@@ -20,16 +20,16 @@ class UpdateBlueprint[F[_]: MonadThrow: Logger](repositories: Repositories[F]) {
       role: Role
   ): F[Entity[Blueprint]] =
     for {
-      blueprint <- repositories.schema.get(id)
+      blueprint <- repositories.blueprint.get(id)
       _ <- authorize(blueprint, role)
-      updatedBlueprint <- repositories.schema.update(
+      updatedBlueprint <- repositories.blueprint.update(
         blueprint.copy(data = blueprint.data.copy(name = update.name))
       )
     } yield updatedBlueprint
 
   private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
     role match {
-      case Admin() => Logger[F].info(s"Admin updated blueprint $blueprint.")
+      case Admin() => Logger[F].info(s"Admin updated blueprint ${blueprint.id}.")
       case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
@@ -37,7 +37,7 @@ class UpdateBlueprint[F[_]: MonadThrow: Logger](repositories: Repositories[F]) {
           )
         )
       case Org(orgName, identifier) =>
-        Logger[F].info(s"$identifier updated blueprint $blueprint.")
+        Logger[F].info(s"$identifier updated blueprint ${blueprint.id}.")
     }
 
 }

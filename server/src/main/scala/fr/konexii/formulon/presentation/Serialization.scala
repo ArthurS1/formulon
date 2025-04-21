@@ -14,6 +14,7 @@ import scala.util.Try
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application.Plugin
 import fr.konexii.formulon.application.dtos._
+import java.time.format.DateTimeFormatter
 
 object Serialization
     extends EntityCirceInstances
@@ -27,7 +28,8 @@ object Serialization
 
 sealed trait DtosCirceInstances {
 
-  implicit val decoderForUpdateBlueprintRequest: Decoder[UpdateBlueprintRequest] =
+  implicit val decoderForUpdateBlueprintRequest
+      : Decoder[UpdateBlueprintRequest] =
     deriveDecoder[UpdateBlueprintRequest]
 
   implicit val decoderForCreateBlueprintRequest: Decoder[CreateSchemaRequest] =
@@ -37,21 +39,48 @@ sealed trait DtosCirceInstances {
 
 sealed trait VersionCirceInstances {
 
-  implicit val encoderForVersion: Encoder[Version] =
+  import Serialization._
+
+  val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
+
+  implicit def encoderForVersion(implicit
+      encoder: Encoder[FieldWithMetadata]
+  ): Encoder[Version] = {
     new Encoder[Version] {
       def apply(a: Version): Json =
-        Json.obj(("name", Json.fromString("test"))) // TODO : remove mock data
+        Json.obj(
+          ("date", Json.fromString(a.date.format(timeFormat))),
+          ("content", a.content.asJson)
+        )
     }
+  }
 
 }
 
 sealed trait BlueprintCirceInstances {
 
-  implicit val encoderForBlueprint: Encoder[Blueprint] =
+  import Serialization._
+
+  implicit def encoderForBlueprint(
+      implicit encoder: Encoder[FieldWithMetadata],
+  ): Encoder[Blueprint] = {
+
     new Encoder[Blueprint] {
       def apply(a: Blueprint): Json =
-        Json.obj(("name", Json.fromString("test"))) // TODO : remove mock data
+        Json.obj(
+          ("name", Json.fromString(a.name)),
+          ("orgName", Json.fromString(a.orgName)),
+          ("versions", a.versions.asJson),
+          (
+            "active",
+            a.active match {
+              case None        => Json.Null
+              case Some(value) => value.asJson
+            }
+          )
+        )
     }
+  }
 
 }
 
@@ -159,12 +188,9 @@ sealed trait SubmissionCirceInstances {
   import fr.konexii.formulon.presentation.Serialization._
 
   implicit def decoderForSubmission(
-      plugins: List[Plugin]
+    implicit decoder: Decoder[Answer]
   ): Decoder[Submission] =
     new Decoder[Submission] {
-      implicit val decoderForAnswerWithPlugins: Decoder[Answer] =
-        decoderForAnswer(plugins)
-
       def apply(c: HCursor): Decoder.Result[Submission] =
         for {
           answers <- c
@@ -173,15 +199,10 @@ sealed trait SubmissionCirceInstances {
         } yield Submission(answers)
     }
 
-  // TODO: We might get out of this situation by making encoders explicit and taking a JSON
-  // This way we could stop the whole thing before encoding
   implicit def encoderForSubmission(
-      plugins: List[Plugin]
+      implicit encoder: Encoder[Answer]
   ): Encoder[Submission] =
     new Encoder[Submission] {
-      implicit val encoderForAnswers: Encoder[List[Entity[Answer]]] =
-        encodeList(encoderForEntity(encoderForAnswer(plugins)))
-
       def apply(a: Submission): Json = {
         Json.obj(
           ("answers", a.answers.asJson)

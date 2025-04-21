@@ -29,7 +29,8 @@ class Routes(
 
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
-  implicit val encoder: Encoder[Submission] = encoderForSubmission(plugins)
+  implicit val answerEncoder: Encoder[Answer] = encoderForAnswer(plugins)
+  implicit val fieldEncoder: Encoder[FieldWithMetadata] = encoderForFieldWithMetadata(plugins)
 
   val roleMiddleware: AuthMiddleware[IO, Role] =
     AuthMiddleware(getRole(secretKey))
@@ -58,14 +59,15 @@ class Routes(
           ) / "version" / "add" as role =>
         for {
           rawBody <- authedReq.req.bodyText.compile.string
-          newVersion <- new usecases.CreateVersion(repositories)
-            .execute(id, rawBody)
+          newVersion <- new usecases.CreateVersion(repositories, plugins)
+            .execute(id, rawBody, role)
           response <- Ok(newVersion)
         } yield response
       // return all available versions
       case GET -> Root / "schema" / UUIDVar(id) / "version" as role =>
         for {
-          versions <- new usecases.ReadVersionList(repositories).execute(id)
+          versions <- new usecases.ReadVersionList(repositories)
+            .execute(id, role)
           response <- Ok(versions)
         } yield response
       // return a specific version with its content
@@ -74,7 +76,7 @@ class Routes(
           ) as role =>
         for {
           version <- new usecases.ReadVersion(repositories)
-            .execute(id, versionId)
+            .execute(id, versionId, role)
           response <- Ok(version)
         } yield response
       // update active version to the id
@@ -83,14 +85,15 @@ class Routes(
           ) / "version" / "active" / UUIDVar(versionId) as role =>
         for {
           _ <- new usecases.SetActiveVersion(repositories)
-            .execute(id, versionId)
+            .execute(id, versionId, role)
           response <- NoContent()
         } yield response
       // remove active version (shutdown the schema)
       case DELETE -> Root / "schema" / UUIDVar(
             id
           ) / "version" / "active" as role =>
-        new usecases.UnsetActiveVersion(repositories).execute(id) >> Accepted()
+        new usecases.UnsetActiveVersion(repositories)
+          .execute(id, role) >> Accepted()
     }
 
   val authedBlueprintRoutes: AuthedRoutes[Role, IO] =
@@ -120,7 +123,8 @@ class Routes(
         } yield response
       // delete the blueprint
       case DELETE -> Root / "schema" / UUIDVar(id) as role =>
-        new usecases.DeleteBlueprint[IO](repositories).execute(id, role) >> NoContent()
+        new usecases.DeleteBlueprint[IO](repositories)
+          .execute(id, role) >> NoContent()
     }
 
   val submissionRoutes = HttpRoutes
@@ -131,7 +135,7 @@ class Routes(
           ) / "version" / UUIDVar(versionId) / "submit" =>
         for {
           rawBody <- req.bodyText.compile.string
-          _ <- new usecases.Submit[IO](repositories)
+          _ <- new usecases.Submit[IO](repositories, plugins)
             .execute(schemaId, versionId, rawBody)
           response <- Created()
         } yield response

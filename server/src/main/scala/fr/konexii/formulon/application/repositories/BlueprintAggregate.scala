@@ -4,7 +4,7 @@ import fr.konexii.formulon.domain._
 
 import java.util.UUID
 
-trait BlueprintAggregate[F[_]] {
+trait SchemaAggregate[F[_]] {
 
   def get(id: UUID): F[Entity[Blueprint]]
 

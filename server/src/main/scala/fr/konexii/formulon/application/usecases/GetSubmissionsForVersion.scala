@@ -12,7 +12,7 @@ class GetSubmissionsForVersion[F[_]: MonadThrow](repositories: Repositories[F]) 
 
   def execute(schemaId: UUID, versionId: UUID): F[List[Entity[Submission]]] =
     for {
-      schema <- repositories.schema.get(schemaId)
+      schema <- repositories.blueprint.get(schemaId)
       version <- MonadThrow[F].fromOption(
         schema.data.versions.find(e => e.id === versionId),
         new Exception(s"Failed to find the schema with id $schemaId.")

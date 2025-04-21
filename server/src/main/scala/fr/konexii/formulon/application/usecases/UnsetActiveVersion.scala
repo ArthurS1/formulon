@@ -5,16 +5,41 @@ import cats.syntax.all._
 
 import java.util.UUID
 
-import fr.konexii.formulon.application.Repositories
+import fr.konexii.formulon.domain._
+import fr.konexii.formulon.application._
+import fr.konexii.formulon.application.utils.UnauthorizedException
 
-class UnsetActiveVersion[F[_]: MonadThrow](repositories: Repositories[F]) {
+import org.typelevel.log4cats.Logger
 
-  def execute(id: UUID): F[Unit] =
+class UnsetActiveVersion[F[_]: MonadThrow: Logger](
+    repositories: Repositories[F]
+) {
+
+  def execute(id: UUID, role: Role): F[Unit] =
     for {
-      schema <- repositories.schema.get(id)
-      _ <- repositories.schema.update(
-        schema.copy(data = schema.data.copy(active = None))
+      blueprint <- repositories.blueprint.get(id)
+      _ <- authorize(blueprint, role)
+      _ <- repositories.blueprint.update(
+        blueprint.copy(data = blueprint.data.copy(active = None))
       )
     } yield ()
+
+  private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
+    role match {
+      case Admin() =>
+        Logger[F].info(
+          s"Admin disabled active version on blueprint ${blueprint.id}."
+        )
+      case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
+        MonadThrow[F].raiseError[Unit](
+          new UnauthorizedException(
+            s"$identifier unauthorized to disable active version on blueprint ${blueprint.id}."
+          )
+        )
+      case Org(orgName, identifier) =>
+        Logger[F].info(
+          s"$identifier disabled active version on blueprint ${blueprint.id}."
+        )
+    }
 
 }
