@@ -87,37 +87,40 @@ class Routes(
           response <- NoContent()
         } yield response
       // remove active version (shutdown the schema)
-      case DELETE -> Root / "schema" / UUIDVar(id) / "version" / "active" as role =>
+      case DELETE -> Root / "schema" / UUIDVar(
+            id
+          ) / "version" / "active" as role =>
         new usecases.UnsetActiveVersion(repositories).execute(id) >> Accepted()
     }
 
   val authedBlueprintRoutes: AuthedRoutes[Role, IO] =
     AuthedRoutes.of {
       // create a blueprint
-      case authedReq @ POST -> Root / "schema" as Org(orgName, _) =>
+      case authedReq @ POST -> Root / "schema" as role =>
         for {
           newSchema <- authedReq.req.as[CreateSchemaRequest]
-          createdSchema <- new usecases.CreateSchema(repositories)
-            .execute(newSchema)
+          createdSchema <- new usecases.CreateBlueprint(repositories)
+            .execute(newSchema, role)
           response <- Created(createdSchema)
         } yield response
       // given an id, get the active version of a blueprint
-      case GET -> Root / "schema" / UUIDVar(id) as _ =>
+      case GET -> Root / "schema" / UUIDVar(id) as role =>
         for {
-          schema <- new usecases.ReadBlueprint[IO](repositories).execute(id)
+          schema <- new usecases.ReadBlueprint[IO](repositories)
+            .execute(id, role)
           response <- Ok(schema)
         } yield response
       // update the blueprint
-      case authedReq @ PUT -> Root / "schema" / UUIDVar(id) as _ =>
+      case authedReq @ PUT -> Root / "schema" / UUIDVar(id) as role =>
         for {
-          update <- authedReq.req.as[UpdateSchemaRequest]
-          updatedSchema <- new usecases.UpdateSchema[IO](repositories)
-            .execute(update, id)
+          update <- authedReq.req.as[UpdateBlueprintRequest]
+          updatedSchema <- new usecases.UpdateBlueprint[IO](repositories)
+            .execute(update, id, role)
           response <- Ok(updatedSchema)
         } yield response
       // delete the blueprint
-      case DELETE -> Root / "schema" / UUIDVar(id) as Org(orgName, _) =>
-        new usecases.DeleteSchema[IO](repositories).execute(id) >> NoContent()
+      case DELETE -> Root / "schema" / UUIDVar(id) as role =>
+        new usecases.DeleteBlueprint[IO](repositories).execute(id, role) >> NoContent()
     }
 
   val submissionRoutes = HttpRoutes

@@ -18,3 +18,4 @@ final case class CompositeException(exceptions: NonEmptyChain[Throwable])
 
 }
 
+final case class UnauthorizedException(message: String) extends Exception {}

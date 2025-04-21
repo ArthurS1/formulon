@@ -27,8 +27,8 @@ object Serialization
 
 sealed trait DtosCirceInstances {
 
-  implicit val decoderForUpdateBlueprintRequest: Decoder[UpdateSchemaRequest] =
-    deriveDecoder[UpdateSchemaRequest]
+  implicit val decoderForUpdateBlueprintRequest: Decoder[UpdateBlueprintRequest] =
+    deriveDecoder[UpdateBlueprintRequest]
 
   implicit val decoderForCreateBlueprintRequest: Decoder[CreateSchemaRequest] =
     deriveDecoder[CreateSchemaRequest]

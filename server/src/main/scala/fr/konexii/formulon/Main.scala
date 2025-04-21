@@ -17,6 +17,7 @@ import fr.konexii.formulon.presentation.Routes
 import fr.konexii.formulon.presentation.Cli._
 import fr.konexii.formulon.application.Plugin
 import fr.konexii.formulon.builtins.Text.Text
+import fr.konexii.formulon.application.utils.UnauthorizedException
 
 import java.util.ServiceLoader
 
@@ -98,7 +99,7 @@ object Main extends IOApp {
             ),
             plugins,
             conf.secretKey
-          ).routes,
+          ).routes
         ).orNotFound
       )
       .build
@@ -111,16 +112,25 @@ object Main extends IOApp {
       logHeaders = true,
       logBody = true
     )(
-      ErrorHandling.Custom.recoverWith(routes) { case e: Exception =>
-        OptionT.liftF(
-          for {
-            _ <- Logger[IO].error(e)(
-              s"""An error was never caught : ${e.toString}"""
-            )
-          } yield Response[IO](status = Status.InternalServerError)
-        )
+      ErrorHandling.Custom.recoverWith(routes) {
+        case e: UnauthorizedException =>
+          OptionT.liftF(
+            for {
+              _ <- Logger[IO].warn(e)(
+                s"""Authorization failure : ${e.toString}"""
+              )
+            } yield Response[IO](status = Status.Forbidden)
+              .withEntity("Unauthorized to interact with this resource.")
+          )
+        case e: Exception =>
+          OptionT.liftF(
+            for {
+              _ <- Logger[IO].error(e)(
+                s"""An error was never caught : ${e.toString}"""
+              )
+            } yield Response[IO](status = Status.InternalServerError)
+          )
       }
-
     )
 
 }

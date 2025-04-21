@@ -8,16 +8,24 @@ import java.util.UUID
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
 import fr.konexii.formulon.application.utils.UnauthorizedException
+import fr.konexii.formulon.application.dtos.UpdateBlueprintRequest
 
 import org.typelevel.log4cats.Logger
 
-class ReadBlueprint[F[_]: MonadThrow : Logger](repositories: Repositories[F]) {
+class UpdateBlueprint[F[_]: MonadThrow: Logger](repositories: Repositories[F]) {
 
-  def execute(id: UUID, role: Role): F[Entity[Blueprint]] =
+  def execute(
+      update: UpdateBlueprintRequest,
+      id: UUID,
+      role: Role
+  ): F[Entity[Blueprint]] =
     for {
-      result <- repositories.schema.get(id)
-      _ <- authorize(result, role)
-    } yield result
+      blueprint <- repositories.schema.get(id)
+      _ <- authorize(blueprint, role)
+      updatedBlueprint <- repositories.schema.update(
+        blueprint.copy(data = blueprint.data.copy(name = update.name))
+      )
+    } yield updatedBlueprint
 
   private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
     role match {

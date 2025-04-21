@@ -10,6 +10,7 @@ import java.util.UUID
 
 final case class Blueprint(
     name: String,
+    orgName: String,
     versions: List[Entity[Version]] = List(),
     active: Option[Entity[Version]] = None
 ) {
@@ -38,8 +39,8 @@ final case class Blueprint(
 
 object Blueprint {
 
-  def apply(name: String): ValidatedNec[Throwable, Blueprint] =
-    (validateName(name.strip)).map(Blueprint(_))
+  def apply(name: String, orgName: String): ValidatedNec[Throwable, Blueprint] =
+    (validateName(name.strip)).map(Blueprint(_, orgName))
 
   def validateName(name: String): ValidatedNec[Throwable, String] =
     isNotBlank(name) *> isNotMoreThan(80, name) *> isOnlyAlphasAndDigits(name)
