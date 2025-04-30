@@ -69,7 +69,7 @@ sealed trait BlueprintCirceInstances {
       def apply(a: Blueprint): Json =
         Json.obj(
           ("name", Json.fromString(a.name)),
-          ("orgName", Json.fromString(a.orgName)),
+          ("orgName", Json.fromString(a.tag)),
           ("versions", a.versions.asJson),
           (
             "active",
@@ -140,7 +140,7 @@ sealed trait FieldWithMetadataCirceInstances {
 
 sealed trait AnswerCirceInstances {
 
-  implicit def encoderForAnswer(plugins: List[Plugin]): Encoder[Answer] =
+  def encoderForAnswer(plugins: List[Plugin]): Encoder[Answer] =
     new Encoder[Answer] {
       def apply(a: Answer): Json = {
         val plugin = plugins.find(p => p.name === a.name)
@@ -159,7 +159,7 @@ sealed trait AnswerCirceInstances {
       }
     }
 
-  implicit def decoderForAnswer(plugins: List[Plugin]): Decoder[Answer] =
+  def decoderForAnswer(plugins: List[Plugin]): Decoder[Answer] =
     new Decoder[Answer] {
       def apply(c: HCursor): Decoder.Result[Answer] =
         for {

@@ -1,8 +1,8 @@
 package fr.konexii.formulon.application
 
-import cats.data._
 import io.circe._
 
+import cats.data.NonEmptyChain
 import fr.konexii.formulon.domain._
 
 /*
@@ -14,10 +14,10 @@ import fr.konexii.formulon.domain._
 trait Plugin {
   def name: String
 
-  def validate(
-      field: Field,
-      answer: Answer
-  ): ValidatedNec[Throwable, (Field, Answer)]
+  def validate(z: Zipper[Validator.Association]): Either[
+      NonEmptyChain[Throwable],
+      Zipper[Validator.Association]
+    ]
 
   def serializeField(field: Field): Either[Throwable, Json]
 

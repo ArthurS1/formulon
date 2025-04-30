@@ -7,7 +7,6 @@ import java.util.UUID
 
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
-import fr.konexii.formulon.application.utils.UnauthorizedException
 
 import org.typelevel.log4cats.Logger
 
@@ -22,7 +21,7 @@ class ReadBlueprint[F[_]: MonadThrow : Logger](repositories: Repositories[F]) {
   private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
     role match {
       case Admin() => Logger[F].info(s"Admin updated blueprint ${blueprint.id}.")
-      case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
+      case Org(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
             s"$identifier unauthorized to update blueprint ${blueprint.id}."

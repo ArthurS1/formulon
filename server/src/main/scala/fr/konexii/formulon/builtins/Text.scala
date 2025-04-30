@@ -1,7 +1,8 @@
-package fr.konexii.formulon.builtins.Text
+package fr.konexii.formulon.builtins
 
-import fr.konexii.formulon.application.Plugin
 import fr.konexii.formulon.domain._
+import fr.konexii.formulon.application.Plugin
+import fr.konexii.formulon.application.Casts._
 
 import cats.syntax.all._
 import cats.data._
@@ -9,65 +10,50 @@ import cats.data._
 import io.circe._
 import io.circe.syntax._
 
-import shapeless.Typeable
-import shapeless.syntax.typeable._
-
-/* TODO :
- *  - add invariant logic
- *  - try out the thing
- */
-
-object Utils {
-
-  def unwrapTypes[F <: Field: Typeable, A <: Answer: Typeable](
-      field: Field,
-      answer: Answer,
-      g: (F, A) => ValidatedNec[Throwable, (Field, Answer)]
-  ): ValidatedNec[Throwable, (Field, Answer)] = if (
-    field.name === Text.name && answer.name === Text.name
-  ) (field.cast[F], answer.cast[A]) match {
-    case (Some(f), Some(a)) => g(f, a)
-    case _                  => new Exception("Could not safely cast").invalidNec
-  }
-  else
-    new Exception("Field type is different from answer type").invalidNec
-
-}
-
 final case class Text() extends Plugin {
-
-  import Utils._
 
   val name = Text.name
 
   def validate(
-      field: Field,
-      answer: Answer
-  ): ValidatedNec[Throwable, (Field, Answer)] =
-    unwrapTypes(
-      field,
-      answer,
-      (f: TextField, a: TextAnswer) =>
-        if (a.value.length() < f.maxLength && a.value.length() >= f.minLength)
-          (new Exception("Custom exception")).invalidNec
-        else (f, a).validNec
-    )
+      z: Zipper[Validator.Association]
+  ): Either[NonEmptyChain[Throwable], Zipper[Validator.Association]] =
+    z.focus match {
+      case Trunk(Entity(id, (Some(answer), fieldWithMetadata)), _) =>
+        for {
+          a <- answer
+            .to[TextAnswer](Text.name)
+            .left
+            .map(NonEmptyChain.one(_))
+          f <- fieldWithMetadata.field
+            .to[TextField](Text.name)
+            .left
+            .map(NonEmptyChain.one(_))
+          result <- validate_(f, a, z).toEither
+        } yield result
+      case _ => Left(NonEmptyChain.one(new Exception("Unexpected")))
+    }
+
+  // This should be what the end plugin developer should use
+  private def validate_(
+      f: TextField,
+      a: TextAnswer,
+      zipper: Zipper[Validator.Association]
+  ): ValidatedNec[Throwable, Zipper[Validator.Association]] =
+    if (a.value.length() < f.maxLength && a.value.length() >= f.minLength)
+      (new Exception("Custom exception")).invalidNec
+    else zipper.next.left.map(f => new Exception(f.msg)).toValidatedNec
 
   import TextField._
   import TextAnswer._
 
-  def serializeField(field: Field): Either[Throwable, Json] = Either.fromOption(
-    field.cast[TextField].map(_.asJson),
-    new Exception("casting failed probably")
-  )
+  def serializeField(field: Field): Either[Throwable, Json] =
+    field.to[TextField](Text.name).map(_.asJson)
 
   def deserializeField(field: Json): Either[Throwable, Field] =
     field.as[TextField].left.map(err => new Exception(err.message))
 
-  def serializeAnswer(answer: Answer): Either[Throwable, Json] = Either.fromOption(
-    answer.cast[TextAnswer].map(_.asJson),
-    new Exception("casting failed probably")
-  )
+  def serializeAnswer(answer: Answer): Either[Throwable, Json] =
+    answer.to[TextAnswer](Text.name).map(_.asJson)
 
   def deserializeAnswer(answer: Json): Either[Throwable, Answer] =
     answer.as[TextAnswer].left.map(err => new Exception(err.message))

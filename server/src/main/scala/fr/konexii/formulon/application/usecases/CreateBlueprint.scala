@@ -6,7 +6,6 @@ import cats.effect.std.UUIDGen
 
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
-import fr.konexii.formulon.application.utils._
 import fr.konexii.formulon.application.dtos.CreateSchemaRequest
 
 import org.typelevel.log4cats.Logger

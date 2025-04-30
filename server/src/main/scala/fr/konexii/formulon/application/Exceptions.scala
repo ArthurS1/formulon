@@ -1,4 +1,4 @@
-package fr.konexii.formulon.application.utils
+package fr.konexii.formulon.application
 
 import cats.data._
 import cats.syntax.all._

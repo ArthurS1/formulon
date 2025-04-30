@@ -16,8 +16,8 @@ import org.http4s.server.middleware.{Logger => LoggerMidleware, _}
 import fr.konexii.formulon.presentation.Routes
 import fr.konexii.formulon.presentation.Cli._
 import fr.konexii.formulon.application.Plugin
-import fr.konexii.formulon.builtins.Text.Text
-import fr.konexii.formulon.application.utils.UnauthorizedException
+import fr.konexii.formulon.application.UnauthorizedException
+import fr.konexii.formulon.builtins._
 
 import java.util.ServiceLoader
 
@@ -74,7 +74,7 @@ object Main extends IOApp {
         >> IO(plugins)
     )
 
-  lazy val builtinPlugins: List[Plugin] = List(Text())
+  lazy val builtinPlugins: List[Plugin] = List(Text(), Select())
 
   def server(
       conf: Valid,

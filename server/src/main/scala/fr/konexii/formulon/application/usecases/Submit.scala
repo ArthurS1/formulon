@@ -13,7 +13,6 @@ import io.circe.parser.decode
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
 import fr.konexii.formulon.presentation.Serialization._
-import fr.konexii.formulon.domain.Validator._
 
 class Submit[F[_]: MonadThrow: UUIDGen](
     repositories: Repositories[F],
@@ -47,51 +46,35 @@ class Submit[F[_]: MonadThrow: UUIDGen](
     _ <- repositories.submission.create(submission, version)
   } yield ()
 
+  // Ugly, could be better
   private def validate(plugins: List[Plugin])(
-      tree: Tree[Association]
-  ): Either[NonEmptyChain[Throwable], Tree[Association]] = tree match {
-    case Branch((Some(Entity(id, answer)), Entity(_, fieldWithMeta)), next, out) =>
-      if (fieldWithMeta.field.name === answer.name)
-        for {
-          plugin <- Either
-            .fromOption(
-              plugins.find(p => p.name === answer.name),
-              NonEmptyChain.one(
-                new Exception(s"Could not find plugin for ${answer.name}")
-              )
-            )
-          _ <- plugin.validate(fieldWithMeta.field, answer).toEither
-        } yield next
-      else
-        Left(
-          NonEmptyChain.one(
-            new Exception(
-              s"Type differ on $id [answer ${answer.name}] != [field ${fieldWithMeta.field.name}]"
-            )
+      z: Zipper[Validator.Association]
+  ): Either[
+    NonEmptyChain[Throwable],
+    Zipper[Validator.Association]
+  ] = z.focus match {
+    case Branch(Entity(id, (Some(answer), fieldWithMetadata)), _, _) =>
+      if (answer.name === fieldWithMetadata.field.name)
+        Either
+          .fromOption(
+            plugins.find(p => p.name === fieldWithMetadata.field.name),
+            NonEmptyChain.one(new Exception("failed to find"))
           )
-        )
-    case Trunk((Some(Entity(id, answer)), Entity(_, fieldWithMeta)), next) =>
-      if (fieldWithMeta.field.name === answer.name)
-        for {
-          plugin <- Either
-            .fromOption(
-              plugins.find(p => p.name === answer.name),
-              NonEmptyChain.one(
-                new Exception(s"Could not find plugin for ${answer.name}")
-              )
-            )
-          _ <- plugin.validate(fieldWithMeta.field, answer).toEither
-        } yield next
+          .flatMap(plugin => plugin.validate(z))
       else
-        Left(
-          NonEmptyChain.one(
-            new Exception(
-              s"Type differ on $id [answer ${answer.name}] != [field ${fieldWithMeta.field.name}]"
-            )
+        Left(NonEmptyChain.one(new Exception("answer and field types differ")))
+    case Trunk(Entity(id, (Some(answer), fieldWithMetadata)), _) =>
+      if (answer.name === fieldWithMetadata.field.name)
+        Either
+          .fromOption(
+            plugins.find(p => p.name === fieldWithMetadata.field.name),
+            NonEmptyChain.one(new Exception("failed to find"))
           )
-        )
-
-    case _ => Left(NonEmptyChain.one(new Exception("idk")))
+          .flatMap(plugin => plugin.validate(z))
+      else
+        Left(NonEmptyChain.one(new Exception("answer and field types differ")))
+    case _                =>
+        Left(NonEmptyChain.one(new Exception("idk")))
   }
 
 }

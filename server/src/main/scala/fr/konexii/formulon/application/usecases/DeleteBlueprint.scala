@@ -7,7 +7,6 @@ import java.util.UUID
 
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
-import fr.konexii.formulon.application.utils.UnauthorizedException
 
 import org.typelevel.log4cats.Logger
 
@@ -23,7 +22,7 @@ class DeleteBlueprint[F[_]: MonadThrow: Logger](repositories: Repositories[F]) {
   private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
     role match {
       case Admin() => Logger[F].info(s"Admin deleted blueprint ${blueprint.id}.")
-      case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
+      case Org(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
             s"$identifier unauthorized to delete blueprint ${blueprint.id}."

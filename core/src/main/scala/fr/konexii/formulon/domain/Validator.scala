@@ -4,44 +4,63 @@ import cats.data._
 import cats.syntax.all._
 
 import fr.konexii.formulon.domain.Tree._
+import java.util.UUID
+
+trait ValidatorException
+final case class RequiredFieldNotFound(id: UUID) extends ValidatorException
 
 object Validator {
 
-  type Association = (Option[Entity[Answer]], Entity[FieldWithMetadata])
+  type Association = (Option[Answer], FieldWithMetadata)
 
   type Validation =
-    Tree[Association] => Either[NonEmptyChain[Throwable], Tree[Association]]
+    Zipper[Association] => Either[
+      NonEmptyChain[ValidatorException],
+      Zipper[Association]
+    ]
 
   def validate(
       t: Tree[Entity[FieldWithMetadata]],
       s: Submission,
       f: Validation
-  ): Either[NonEmptyChain[Throwable], Submission] = analyze(
-    association(t, s),
-    f
-  ).map(_ => s)
+  ): Either[NonEmptyChain[ValidatorException], Submission] = {
+    validateSingle(
+      Zipper(association(t, s)),
+      f
+    ).map(_ => s)
+  }
 
-  private def analyze(
-      t: Tree[Association],
+  def validateAll(
+      current: Zipper[Association],
       f: Validation
-  ): Either[NonEmptyChain[Throwable], Tree[Association]] = f(t).flatMap(t =>
-    t match {
-      case Trunk((None, Entity(id, FieldWithMetadata(_, true, _))), _) =>
-        Left(
-          NonEmptyChain.one(
-            new Exception(s"Required field at id $id not found")
-          )
-        )
-      case t @ Trunk(_, _)     => analyze(t, f)
-      case t @ Branch(_, _, _) => analyze(t, f)
-      case t @ End()           => Right(t)
-    }
-  )
+    ): Either[NonEmptyChain[ValidatorException], Zipper[Association]] =
+      validateSingle(current, f).flatMap(z => z.focus match {
+        case End() => Right(z)
+        case _ => validateSingle(z, f)
+      })
 
-  private def association(
+  def validateSingle(
+      z: Zipper[Association],
+      f: Validation
+  ): Either[NonEmptyChain[ValidatorException], Zipper[Association]] =
+    z.focus match {
+      case Branch(content, next, out) if checkRequired(content) === false =>
+        Left(NonEmptyChain.one(RequiredFieldNotFound(content.id)))
+      case Trunk(content, next) if checkRequired(content) === false =>
+        Left(NonEmptyChain.one(RequiredFieldNotFound(content.id)))
+      case _ => f(z)
+    }
+
+  def checkRequired(
+      a: Entity[Association]
+  ): Boolean = a match {
+    case Entity(id, (None, fwm)) if fwm.required => false
+    case _                                       => true
+  }
+
+  def association(
       t: Tree[Entity[FieldWithMetadata]],
       s: Submission
-  ): Tree[Association] =
-    t.map(f => (s.answers.find(a => f.id === a.id), f))
-
+  ): Tree[Entity[Association]] =
+    t.map(a => a.map(b => (s.answers.find(c => a.id === c.id).map(_.data), b)))
 }

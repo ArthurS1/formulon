@@ -7,7 +7,6 @@ import java.util.UUID
 
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
-import fr.konexii.formulon.application.utils.UnauthorizedException
 
 import org.typelevel.log4cats.Logger
 
@@ -33,7 +32,7 @@ class ReadVersion[F[_]: MonadThrow: Logger](respositories: Repositories[F]) {
         Logger[F].info(
           s"Admin read ${version.id} on blueprint ${blueprint.id}."
         )
-      case Org(orgName, identifier) if (orgName =!= blueprint.data.orgName) =>
+      case Org(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
             s"$identifier unauthorized to set active version on blueprint ${blueprint.id}."
