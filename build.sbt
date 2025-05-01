@@ -47,7 +47,8 @@ lazy val core = project
     Test / scalacOptions := testCompilerOptions,
     libraryDependencies += "org.typelevel" %% "cats-effect" % "3.5.7",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    libraryDependencies += "org.typelevel" %% "cats-laws" % "2.13.0" % Test
+    libraryDependencies += "org.typelevel" %% "cats-laws" % "2.13.0" % Test,
+    libraryDependencies += "org.typelevel" %% "discipline-scalatest" % "2.3.0" % Test
   )
 
 /*

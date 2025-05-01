@@ -98,4 +98,17 @@ sealed abstract class TreeInstances {
 
     }
 
+  implicit def eqForTree[T: Eq]: Eq[Tree[T]] =
+    new Eq[Tree[T]] {
+      def eqv(x: Tree[T], y: Tree[T]): Boolean =
+        (x, y) match {
+          case (End(), End()) => true
+          case (Trunk(a, nextA), Trunk(b, nextB)) if a === b =>
+            eqv(nextA, nextB)
+          case (Branch(a, nextA, outA), Branch(b, nextB, outB)) if a === b =>
+            eqv(nextA, nextB) && eqv(outA, outB)
+          case _ => false
+        }
+    }
+
 }
