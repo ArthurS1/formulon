@@ -48,19 +48,22 @@ sealed abstract class TreeInstances {
           case End()                => b
           case Trunk(content, next) => foldLeft(next, f(b, content))(f)
           case Branch(content, next, out) => {
-            val a = foldLeft(next, f(b, content))(f)
-            foldLeft(out, a)(f)
+            val acc1 = foldLeft(next, b)(f)
+            val acc2 = f(acc1, content)
+            foldLeft(out, acc2)(f)
           }
         }
 
       def foldRight[A, B](fa: Tree[A], lb: Eval[B])(
           f: (A, Eval[B]) => Eval[B]
       ): Eval[B] = fa match {
-        case End()                => lb
-        case Trunk(content, next) => foldRight(next, f(content, lb))(f)
+        case End() => Eval.defer(lb)
+        case Trunk(content, next) =>
+          f(content, Eval.defer(foldRight(next, lb)(f)))
         case Branch(content, next, out) => {
-          val a = foldRight(next, f(content, lb))(f)
-          foldRight(out, a)(f)
+          val acc1 = Eval.defer(foldRight(out, lb)(f))
+          val acc2 = Eval.defer(f(content, acc1))
+          foldRight(next, acc2)(f)
         }
       }
     }
