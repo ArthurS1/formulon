@@ -19,6 +19,7 @@ class Submit[F[_]: MonadThrow: UUIDGen](
     plugins: List[Plugin]
 ) {
 
+  implicit val showForValidatorException: Show[ValidatorException] = ???
   implicit val decoder: Decoder[Answer] = decoderForAnswer(plugins)
 
   def execute(
@@ -40,17 +41,19 @@ class Submit[F[_]: MonadThrow: UUIDGen](
       Validator
         .validate(version.data.content, submission.data, validate(plugins))
         .leftMap(errors =>
-          new Exception(errors.toList.map(_.getMessage()).mkString(", "))
+            CompositeException(errors.map(Show[ValidatorException].show(_)))
         )
     )
     _ <- repositories.submission.create(submission, version)
   } yield ()
 
+  final case class DummyException() extends ValidatorException
+
   // Ugly, could be better
   private def validate(plugins: List[Plugin])(
       z: Zipper[Validator.Association]
   ): Either[
-    NonEmptyChain[Throwable],
+    NonEmptyChain[ValidatorException],
     Zipper[Validator.Association]
   ] = z.focus match {
     case Branch(Entity(id, (Some(answer), fieldWithMetadata)), _, _) =>
@@ -58,23 +61,23 @@ class Submit[F[_]: MonadThrow: UUIDGen](
         Either
           .fromOption(
             plugins.find(p => p.name === fieldWithMetadata.field.name),
-            NonEmptyChain.one(new Exception("failed to find"))
+            NonEmptyChain.one(DummyException())
           )
           .flatMap(plugin => plugin.validate(z))
       else
-        Left(NonEmptyChain.one(new Exception("answer and field types differ")))
+        Left(NonEmptyChain.one(DummyException()))
     case Trunk(Entity(id, (Some(answer), fieldWithMetadata)), _) =>
       if (answer.name === fieldWithMetadata.field.name)
         Either
           .fromOption(
             plugins.find(p => p.name === fieldWithMetadata.field.name),
-            NonEmptyChain.one(new Exception("failed to find"))
+            NonEmptyChain.one(DummyException())
           )
           .flatMap(plugin => plugin.validate(z))
       else
-        Left(NonEmptyChain.one(new Exception("answer and field types differ")))
+        Left(NonEmptyChain.one(DummyException()))
     case _                =>
-        Left(NonEmptyChain.one(new Exception("idk")))
+        Left(NonEmptyChain.one(DummyException()))
   }
 
 }

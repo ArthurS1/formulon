@@ -10,13 +10,17 @@ import cats.data._
 import io.circe._
 import io.circe.syntax._
 
+sealed trait TextException extends ValidatorException
+
+sealed case class TextSizeOutOfBount(actualSize: Int) extends TextException
+sealed case class ZipperFocusOnEnd(history: List[ZipperHistory]) extends TextException
+sealed case class DecodingFailure(message: String) extends TextException
+
 final case class Text() extends Plugin {
 
   val name = Text.name
 
-  def validate(
-      z: Zipper[Validator.Association]
-  ): Either[NonEmptyChain[Throwable], Zipper[Validator.Association]] =
+  def validate: Validator.Validation = z =>
     z.focus match {
       case Trunk(Entity(id, (Some(answer), fieldWithMetadata)), _) =>
         for {
@@ -30,7 +34,7 @@ final case class Text() extends Plugin {
             .map(NonEmptyChain.one(_))
           result <- validate_(f, a, z).toEither
         } yield result
-      case _ => Left(NonEmptyChain.one(new Exception("Unexpected")))
+      case _ => Left(NonEmptyChain.one(ZipperFocusOnEnd(z.history)))
     }
 
   // This should be what the end plugin developer should use
@@ -38,25 +42,25 @@ final case class Text() extends Plugin {
       f: TextField,
       a: TextAnswer,
       zipper: Zipper[Validator.Association]
-  ): ValidatedNec[Throwable, Zipper[Validator.Association]] =
+  ): ValidatedNec[TextException, Zipper[Validator.Association]] =
     if (a.value.length() < f.maxLength && a.value.length() >= f.minLength)
-      (new Exception("Custom exception")).invalidNec
-    else zipper.next.left.map(f => new Exception(f.msg)).toValidatedNec
+      TextSizeOutOfBount(a.value.length()).invalidNec
+    else zipper.next.left.map(f => ZipperFocusOnEnd(f.history)).toValidatedNec
 
   import TextField._
   import TextAnswer._
 
-  def serializeField(field: Field): Either[Throwable, Json] =
+  def serializeField(field: Field): Either[ValidatorException, Json] =
     field.to[TextField](Text.name).map(_.asJson)
 
-  def deserializeField(field: Json): Either[Throwable, Field] =
-    field.as[TextField].left.map(err => new Exception(err.message))
+  def deserializeField(field: Json): Either[ValidatorException, Field] =
+    field.as[TextField].left.map(err => DecodingFailure(err.message))
 
-  def serializeAnswer(answer: Answer): Either[Throwable, Json] =
+  def serializeAnswer(answer: Answer): Either[ValidatorException, Json] =
     answer.to[TextAnswer](Text.name).map(_.asJson)
 
-  def deserializeAnswer(answer: Json): Either[Throwable, Answer] =
-    answer.as[TextAnswer].left.map(err => new Exception(err.message))
+  def deserializeAnswer(answer: Json): Either[ValidatorException, Answer] =
+    answer.as[TextAnswer].left.map(err => DecodingFailure(err.message))
 
 }
 

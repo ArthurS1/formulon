@@ -1,5 +1,6 @@
 package fr.konexii.formulon.presentation
 
+import cats._
 import cats.syntax.all._
 
 import io.circe._
@@ -61,8 +62,8 @@ sealed trait BlueprintCirceInstances {
 
   import Serialization._
 
-  implicit def encoderForBlueprint(
-      implicit encoder: Encoder[FieldWithMetadata],
+  implicit def encoderForBlueprint(implicit
+      encoder: Encoder[FieldWithMetadata]
   ): Encoder[Blueprint] = {
 
     new Encoder[Blueprint] {
@@ -111,6 +112,10 @@ sealed trait FieldWithMetadataCirceInstances {
       plugins: List[Plugin]
   ): Decoder[FieldWithMetadata] =
     new Decoder[FieldWithMetadata] {
+
+      implicit val showForValidationException: Show[ValidationException] = ???
+      implicit val showForValidatorException: Show[ValidatorException] = ???
+
       def apply(c: HCursor): Decoder.Result[FieldWithMetadata] = {
         val type_ = c.downField("type")
 
@@ -128,11 +133,21 @@ sealed trait FieldWithMetadataCirceInstances {
             .deserializeField(data)
             .left
             .map(f =>
-              DecodingFailure.apply(f.getMessage(), c.history)
+              DecodingFailure.apply(Show[ValidatorException].show(f), c.history)
             ) // TODO : find a way to remove this dirty fix
           title <- c.downField("title").as[String]
           required <- c.downField("required").as[Boolean]
-        } yield FieldWithMetadata(title, required, field)
+          result <- FieldWithMetadata(title, required, field).toEither.left.map(
+            errs =>
+              DecodingFailure(
+                errs
+                  .map(Show[ValidationException].show(_))
+                  .toList
+                  .mkString(", "),
+                c.history
+              )
+          )
+        } yield result
       }
     }
 
@@ -161,6 +176,9 @@ sealed trait AnswerCirceInstances {
 
   def decoderForAnswer(plugins: List[Plugin]): Decoder[Answer] =
     new Decoder[Answer] {
+
+      implicit val showForValidatorException: Show[ValidatorException] = ???
+
       def apply(c: HCursor): Decoder.Result[Answer] =
         for {
           responseType <- c.downField("type").as[String]
@@ -176,7 +194,7 @@ sealed trait AnswerCirceInstances {
             .deserializeAnswer(data)
             .left
             .map(f =>
-              DecodingFailure.apply(f.getMessage(), c.history)
+              DecodingFailure.apply(Show[ValidatorException].show(f), c.history)
             ) // TODO : find a way to remove this dirty fix
         } yield result
     }
@@ -187,8 +205,8 @@ sealed trait SubmissionCirceInstances {
 
   import fr.konexii.formulon.presentation.Serialization._
 
-  implicit def decoderForSubmission(
-    implicit decoder: Decoder[Answer]
+  implicit def decoderForSubmission(implicit
+      decoder: Decoder[Answer]
   ): Decoder[Submission] =
     new Decoder[Submission] {
       def apply(c: HCursor): Decoder.Result[Submission] =
@@ -199,8 +217,8 @@ sealed trait SubmissionCirceInstances {
         } yield Submission(answers)
     }
 
-  implicit def encoderForSubmission(
-      implicit encoder: Encoder[Answer]
+  implicit def encoderForSubmission(implicit
+      encoder: Encoder[Answer]
   ): Encoder[Submission] =
     new Encoder[Submission] {
       def apply(a: Submission): Json = {

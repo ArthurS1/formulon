@@ -2,7 +2,6 @@ package fr.konexii.formulon.application
 
 import io.circe._
 
-import cats.data.NonEmptyChain
 import fr.konexii.formulon.domain._
 
 /*
@@ -14,16 +13,13 @@ import fr.konexii.formulon.domain._
 trait Plugin {
   def name: String
 
-  def validate(z: Zipper[Validator.Association]): Either[
-      NonEmptyChain[Throwable],
-      Zipper[Validator.Association]
-    ]
+  def validate: Validator.Validation
 
-  def serializeField(field: Field): Either[Throwable, Json]
+  def serializeField(field: Field): Either[ValidatorException, Json]
 
-  def deserializeField(field: Json): Either[Throwable, Field]
+  def deserializeField(field: Json): Either[ValidatorException, Field]
 
-  def serializeAnswer(answer: Answer): Either[Throwable, Json]
+  def serializeAnswer(answer: Answer): Either[ValidatorException, Json]
 
-  def deserializeAnswer(answer: Json): Either[Throwable, Answer]
+  def deserializeAnswer(answer: Json): Either[ValidatorException, Answer]
 }

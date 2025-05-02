@@ -14,6 +14,8 @@ class CreateBlueprint[F[_]: MonadThrow: UUIDGen: Logger](
     repositories: Repositories[F]
 ) {
 
+  implicit val showForValidationException: Show[ValidationException] = ???
+
   type OrgName = String
 
   def execute(
@@ -21,11 +23,13 @@ class CreateBlueprint[F[_]: MonadThrow: UUIDGen: Logger](
       role: Role
   ): F[Entity[Blueprint]] =
     for {
-      orgName <- authorize(role)
+      tag <- authorize(role)
       uuid <- UUIDGen[F].randomUUID
       newBlueprint <- MonadThrow[F].fromValidated(
-        Blueprint(name = newSchemaRequest.name, orgName = orgName)
-          .leftMap(CompositeException)
+        Blueprint(newSchemaRequest.name, tag)
+          .leftMap(err =>
+            CompositeException(err.map(Show[ValidationException].show(_)))
+          )
       )
       newBlueprintEntity <- repositories.blueprint.create(
         Entity(uuid, newBlueprint)
@@ -41,7 +45,8 @@ class CreateBlueprint[F[_]: MonadThrow: UUIDGen: Logger](
           )
         )
       case Org(orgName, identifier) =>
-        Logger[F].info(s"$identifier creating blueprint.")
+        Logger[F]
+          .info(s"$identifier creating blueprint.")
           .map(_ => orgName)
     }
 
