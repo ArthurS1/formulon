@@ -74,7 +74,7 @@ object Main extends IOApp {
         >> IO(plugins)
     )
 
-  lazy val builtinPlugins: List[Plugin] = List(Text(), Select())
+  lazy val builtinPlugins: List[Plugin] = List(Text()/*, Select()*/)
 
   def server(
       conf: Valid,

@@ -84,7 +84,8 @@ lazy val server = project
     description := "Http server for creating schemas and filling up forms.",
     scalaVersion := "2.13.16",
     organization := "fr.konexii",
-    scalacOptions := compilerOptions,
+    Compile / scalacOptions := compilerOptions,
+    Test / scalacOptions := testCompilerOptions,
     // Http4s specific configuration
     run / fork := true,
     // Http4s & ember

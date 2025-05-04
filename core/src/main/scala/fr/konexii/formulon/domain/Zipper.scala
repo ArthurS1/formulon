@@ -84,6 +84,13 @@ final case class Zipper[T](
         original
       )
 
+  def content: Option[Entity[T]] =
+    this.focus match {
+      case Branch(content, next, out) => Some(content)
+      case Trunk(content, next) => Some(content)
+      case End() => None
+    }
+
   private def replayHistory(
       h: List[ZipperHistory],
       hAcc: List[ZipperHistory],

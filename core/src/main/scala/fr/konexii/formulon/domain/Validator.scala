@@ -8,6 +8,8 @@ import java.util.UUID
 
 trait ValidatorException
 final case class RequiredFieldNotFound(id: UUID) extends ValidatorException
+final case class TypesDiffer(id: UUID, typeA: String, typeB: String)
+    extends ValidatorException
 
 object Validator {
 
@@ -33,29 +35,31 @@ object Validator {
   def validateAll(
       current: Zipper[Association],
       f: Validation
-    ): Either[NonEmptyChain[ValidatorException], Zipper[Association]] =
-      validateSingle(current, f).flatMap(z => z.focus match {
+  ): Either[NonEmptyChain[ValidatorException], Zipper[Association]] =
+    validateSingle(current, f).flatMap(z =>
+      z.focus match {
         case End() => Right(z)
-        case _ => validateSingle(z, f)
-      })
+        case _     => validateSingle(z, f)
+      }
+    )
 
   def validateSingle(
       z: Zipper[Association],
       f: Validation
   ): Either[NonEmptyChain[ValidatorException], Zipper[Association]] =
-    z.focus match {
-      case Branch(content, next, out) if checkRequired(content) === false =>
-        Left(NonEmptyChain.one(RequiredFieldNotFound(content.id)))
-      case Trunk(content, next) if checkRequired(content) === false =>
-        Left(NonEmptyChain.one(RequiredFieldNotFound(content.id)))
-      case _ => f(z)
+    z.content match {
+      case Some(Entity(id, association)) if failsRequirementCheck(association) =>
+        Left(NonEmptyChain.one(RequiredFieldNotFound(id)))
+      case Some(Entity(id, (Some(ans), fwm))) if ans.name =!= fwm.field.name =>
+        Left(NonEmptyChain.one(TypesDiffer(id, ans.name, fwm.field.name)))
+      case _        => f(z)
     }
 
-  def checkRequired(
-      a: Entity[Association]
+  def failsRequirementCheck(
+      a: Association
   ): Boolean = a match {
-    case Entity(id, (None, fwm)) if fwm.required => false
-    case _                                       => true
+    case (None, fwm) if fwm.required => true
+    case _                           => false
   }
 
   def association(

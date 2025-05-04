@@ -15,6 +15,9 @@ import scala.util.Try
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application.Plugin
 import fr.konexii.formulon.application.dtos._
+import fr.konexii.formulon.presentation.ValidationExceptionInstances._
+import fr.konexii.formulon.presentation.ValidatorExceptionInstances._
+
 import java.time.format.DateTimeFormatter
 
 object Serialization
@@ -113,9 +116,6 @@ sealed trait FieldWithMetadataCirceInstances {
   ): Decoder[FieldWithMetadata] =
     new Decoder[FieldWithMetadata] {
 
-      implicit val showForValidationException: Show[ValidationException] = ???
-      implicit val showForValidatorException: Show[ValidatorException] = ???
-
       def apply(c: HCursor): Decoder.Result[FieldWithMetadata] = {
         val type_ = c.downField("type")
 
@@ -141,7 +141,7 @@ sealed trait FieldWithMetadataCirceInstances {
             errs =>
               DecodingFailure(
                 errs
-                  .map(Show[ValidationException].show(_))
+                  .map(Show[InvariantsException].show(_))
                   .toList
                   .mkString(", "),
                 c.history
@@ -176,8 +176,6 @@ sealed trait AnswerCirceInstances {
 
   def decoderForAnswer(plugins: List[Plugin]): Decoder[Answer] =
     new Decoder[Answer] {
-
-      implicit val showForValidatorException: Show[ValidatorException] = ???
 
       def apply(c: HCursor): Decoder.Result[Answer] =
         for {

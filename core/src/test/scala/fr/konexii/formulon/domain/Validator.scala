@@ -10,13 +10,9 @@ import java.util.UUID
 
 final case class TestException() extends ValidatorException
 
-final case class TestField() extends Field {
-  val name = "test"
-}
+final case class TestField(name: String = "test") extends Field
 
-final case class TestAnswer() extends Answer {
-  val name = "test"
-}
+final case class TestAnswer(name: String = "test") extends Answer
 
 class ValidatorSuite extends AnyFunSpec {
 
@@ -57,27 +53,27 @@ class ValidatorSuite extends AnyFunSpec {
 
     }
 
-    describe("when checking for field requirement") {
+    describe("when checking for required fields") {
 
       it("is valid when the required answer is present") {
         assert(
-          checkRequired(
-            Entity(id, (Some(TestAnswer()), fieldWithMetadata))
-          )
-        )
-      }
-
-      it("is invalid when the required answer is absent") {
-        assert(
-          checkRequired(Entity(id, (None, fieldWithMetadata))) === false
+          failsRequirementCheck(
+            (Some(TestAnswer()), fieldWithMetadata)
+          ) === false
         )
       }
 
       it("is valid when the answer is absent but not required") {
         assert(
-          checkRequired(
-            Entity(id, (None, fieldWithMetadata.copy(required = false)))
-          )
+          failsRequirementCheck(
+            (None, fieldWithMetadata.copy(required = false))
+          ) === false
+        )
+      }
+
+      it("is invalid when the required answer is absent") {
+        assert(
+          failsRequirementCheck((None, fieldWithMetadata))
         )
       }
 
@@ -91,10 +87,33 @@ class ValidatorSuite extends AnyFunSpec {
         assertResult(End())(validateSingle(z, alwaysValidateNext).value.focus)
       }
 
-      it("should fail if a field is required and no answer is found (minimal)") {
+      it(
+        "should fail if a field is required and no answer is found (minimal)"
+      ) {
         val z: Zipper[Association] =
           Zipper(Trunk(Entity(id, (None, fieldWithMetadata)), End()))
         assertResult(Left(NonEmptyChain.one(RequiredFieldNotFound(id))))(
+          validateSingle(z, alwaysValidateNext)
+        )
+      }
+
+      it(
+        "should fail if the type of field and answer differs"
+      ) {
+        val z: Zipper[Association] =
+          Zipper(
+            Trunk(
+              Entity(
+                id,
+                (
+                  Some(TestAnswer().copy(name = "a")),
+                  fieldWithMetadata.copy(field = TestField().copy(name = "b"))
+                )
+              ),
+              End()
+            )
+          )
+        assertResult(Left(NonEmptyChain.one(TypesDiffer(id, "a", "b"))))(
           validateSingle(z, alwaysValidateNext)
         )
       }

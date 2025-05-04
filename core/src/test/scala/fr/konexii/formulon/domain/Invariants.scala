@@ -2,9 +2,9 @@ package fr.konexii.formulon.domain
 
 import org.scalatest.funspec.AnyFunSpec
 
-import fr.konexii.formulon.domain.Validation._
+import fr.konexii.formulon.domain.Invariants._
 
-class ValidationSuite extends AnyFunSpec {
+class InvariantsSuite extends AnyFunSpec {
 
   describe("A string") {
 

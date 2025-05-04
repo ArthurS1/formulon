@@ -6,6 +6,8 @@ import cats.syntax.all._
 import cats.data.Validated._
 import cats.effect.std.UUIDGen
 
+import fr.konexii.formulon.domain.Invariants._
+
 import java.util.UUID
 
 sealed trait BlueprintException
@@ -42,18 +44,16 @@ final case class Blueprint(
 
 object Blueprint {
 
-  import fr.konexii.formulon.domain.Validation._
-
   def apply(
       name: String,
       tag: String
-  ): ValidatedNec[ValidationException, Blueprint] =
+  ): ValidatedNec[InvariantsException, Blueprint] =
     (validateName(name.strip), validateTag(tag.strip)).mapN(new Blueprint(_, _))
 
-  def validateName(name: String): ValidatedNec[ValidationException, String] =
+  def validateName(name: String): ValidatedNec[InvariantsException, String] =
     isNotBlank(name) *> isNotMoreThan(80, name) *> isOnlyUnicodeLetters(name)
 
-  def validateTag(tag: String): ValidatedNec[ValidationException, String] =
+  def validateTag(tag: String): ValidatedNec[InvariantsException, String] =
     isNotBlank(tag) *> isNotMoreThan(40, tag) *> isOnlyAlphasAndDigits(tag)
 
 }
