@@ -36,8 +36,8 @@ sealed trait DtosCirceInstances {
       : Decoder[UpdateBlueprintRequest] =
     deriveDecoder[UpdateBlueprintRequest]
 
-  implicit val decoderForCreateBlueprintRequest: Decoder[CreateSchemaRequest] =
-    deriveDecoder[CreateSchemaRequest]
+  implicit val decoderForCreateBlueprintRequest: Decoder[CreateBlueprintRequest] =
+    deriveDecoder[CreateBlueprintRequest]
 
 }
 

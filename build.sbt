@@ -25,7 +25,6 @@ val compilerOptions = Seq(
 
 val testCompilerOptions = compilerOptions ++ Seq(
   "-Wconf:msg=unused value of type org.scalatest.Assertion:s",
-  "-Wconf:msg=unused value of type org.scalamock:s"
 )
 
 // Sbt plugin for bloop (needed by metals)

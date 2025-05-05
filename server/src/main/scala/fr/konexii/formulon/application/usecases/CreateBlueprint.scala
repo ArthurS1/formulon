@@ -6,7 +6,7 @@ import cats.effect.std.UUIDGen
 
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
-import fr.konexii.formulon.application.dtos.CreateSchemaRequest
+import fr.konexii.formulon.application.dtos.CreateBlueprintRequest
 import fr.konexii.formulon.presentation.ValidationExceptionInstances._
 
 import org.typelevel.log4cats.Logger
@@ -18,7 +18,7 @@ class CreateBlueprint[F[_]: MonadThrow: UUIDGen: Logger](
   type OrgName = String
 
   def execute(
-      newSchemaRequest: CreateSchemaRequest,
+      newSchemaRequest: CreateBlueprintRequest,
       role: Role
   ): F[Entity[Blueprint]] =
     for {

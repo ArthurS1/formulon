@@ -101,7 +101,7 @@ class Routes(
       // create a blueprint
       case authedReq @ POST -> Root / "schema" as role =>
         for {
-          newSchema <- authedReq.req.as[CreateSchemaRequest]
+          newSchema <- authedReq.req.as[CreateBlueprintRequest]
           createdSchema <- new usecases.CreateBlueprint(repositories)
             .execute(newSchema, role)
           response <- Created(createdSchema)
