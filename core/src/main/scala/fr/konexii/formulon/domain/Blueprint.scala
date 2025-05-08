@@ -10,7 +10,7 @@ import fr.konexii.formulon.domain.Invariants._
 
 import java.util.UUID
 
-sealed trait BlueprintException
+sealed trait BlueprintException extends KeyedException
 final case class CouldNotFindSchemaVersion(id: UUID) extends BlueprintException
 
 final case class Blueprint(

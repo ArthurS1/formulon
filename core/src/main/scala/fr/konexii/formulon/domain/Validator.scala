@@ -6,36 +6,38 @@ import cats.syntax.all._
 import fr.konexii.formulon.domain.Tree._
 import java.util.UUID
 
-trait ValidatorException
-final case class RequiredFieldNotFound(id: UUID) extends ValidatorException
-final case class TypesDiffer(id: UUID, typeA: String, typeB: String)
-    extends ValidatorException
+trait ValidatorException[E] extends KeyedException
+final case class RequiredFieldNotFound[E](id: UUID)
+    extends ValidatorException[E]
+final case class TypesDiffer[E](id: UUID, typeA: String, typeB: String)
+    extends ValidatorException[E]
+final case class PluginException[E](e: E) extends ValidatorException[E]
 
 object Validator {
 
   type Association = (Option[Answer], FieldWithMetadata)
 
-  type Validation =
+  type Validation[E] =
     Zipper[Association] => Either[
-      NonEmptyChain[ValidatorException],
+      NonEmptyChain[E],
       Zipper[Association]
     ]
 
-  def validate(
+  def validate[E](
       t: Tree[Entity[FieldWithMetadata]],
       s: Submission,
-      f: Validation
-  ): Either[NonEmptyChain[ValidatorException], Submission] = {
+      f: Validation[E]
+  ): Either[NonEmptyChain[ValidatorException[E]], Submission] = {
     validateSingle(
       Zipper(association(t, s)),
       f
     ).map(_ => s)
   }
 
-  def validateAll(
+  def validateAll[E](
       current: Zipper[Association],
-      f: Validation
-  ): Either[NonEmptyChain[ValidatorException], Zipper[Association]] =
+      f: Validation[E]
+  ): Either[NonEmptyChain[ValidatorException[E]], Zipper[Association]] =
     validateSingle(current, f).flatMap(z =>
       z.focus match {
         case End() => Right(z)
@@ -43,18 +45,18 @@ object Validator {
       }
     )
 
-  def validateSingle(
+  def validateSingle[E](
       z: Zipper[Association],
-      f: Validation
-  ): Either[NonEmptyChain[ValidatorException], Zipper[Association]] =
+      f: Validation[E]
+  ): Either[NonEmptyChain[ValidatorException[E]], Zipper[Association]] =
     z.content match {
-      case Some(Entity(id, association)) if failsRequirementCheck(association) =>
+      case Some(Entity(id, association))
+          if failsRequirementCheck(association) =>
         Left(NonEmptyChain.one(RequiredFieldNotFound(id)))
       case Some(Entity(id, (Some(ans), fwm))) if ans.name =!= fwm.field.name =>
         Left(NonEmptyChain.one(TypesDiffer(id, ans.name, fwm.field.name)))
-      case _        => f(z)
+      case _ => f(z).left.map(_.map(PluginException(_)))
     }
-
   def failsRequirementCheck(
       a: Association
   ): Boolean = a match {
@@ -67,4 +69,5 @@ object Validator {
       s: Submission
   ): Tree[Entity[Association]] =
     t.map(a => a.map(b => (s.answers.find(c => a.id === c.id).map(_.data), b)))
+
 }

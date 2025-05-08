@@ -1,6 +1,7 @@
 package fr.konexii.formulon.builtins
 
 import fr.konexii.formulon.domain._
+import fr.konexii.formulon.application._
 import fr.konexii.formulon.application.Plugin
 import fr.konexii.formulon.application.Casts._
 
@@ -10,17 +11,49 @@ import cats.data._
 import io.circe._
 import io.circe.syntax._
 
-sealed trait TextException extends ValidatorException
+// TODO: Still a lot of boilerplate to remove around here.
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////Exceptions//////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+sealed trait TextException extends KeyedException
 
 sealed case class TextSizeOutOfBount(actualSize: Int) extends TextException
-sealed case class ZipperFocusOnEnd(history: List[ZipperHistory]) extends TextException
+sealed case class ZipperFocusOnEnd(history: List[ZipperHistory])
+    extends TextException
 sealed case class DecodingFailure(message: String) extends TextException
+
+object Conversion {
+  def toKeyedWithMessage(e: TextException): KeyedExceptionWithMessage =
+    e match {
+      case v @ TextSizeOutOfBount(actualSize) =>
+        KeyedExceptionWithMessage.fromKeyedException(
+          v,
+          s"Text size is out of bound. Actual size $actualSize."
+        )
+      case v @ ZipperFocusOnEnd(history) =>
+        KeyedExceptionWithMessage.fromKeyedException(
+          v,
+          s"Zipper focus was on an end node when trying to decode. $history"
+        )
+      case v @ DecodingFailure(message) =>
+        KeyedExceptionWithMessage.fromKeyedException(
+          v,
+          s"Decoding failure ($message)."
+        )
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////Plugin/////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 final case class Text() extends Plugin {
 
   val name = Text.name
 
-  def validate: Validator.Validation = z =>
+  def validate: Validator.Validation[KeyedExceptionWithMessage] = z =>
     z.focus match {
       case Trunk(Entity(id, (Some(answer), fieldWithMetadata)), _) =>
         for {
@@ -34,7 +67,12 @@ final case class Text() extends Plugin {
             .map(NonEmptyChain.one(_))
           result <- validate_(f, a, z).toEither
         } yield result
-      case _ => Left(NonEmptyChain.one(ZipperFocusOnEnd(z.history)))
+      case _ =>
+        Left(
+          NonEmptyChain.one(
+            Conversion.toKeyedWithMessage(ZipperFocusOnEnd(z.history))
+          )
+        )
     }
 
   // This should be what the end plugin developer should use
@@ -42,25 +80,38 @@ final case class Text() extends Plugin {
       f: TextField,
       a: TextAnswer,
       zipper: Zipper[Validator.Association]
-  ): ValidatedNec[TextException, Zipper[Validator.Association]] =
+  ): ValidatedNec[KeyedExceptionWithMessage, Zipper[Validator.Association]] =
     if (a.value.length() < f.maxLength && a.value.length() >= f.minLength)
-      TextSizeOutOfBount(a.value.length()).invalidNec
-    else zipper.next.left.map(f => ZipperFocusOnEnd(f.history)).toValidatedNec
+      Conversion.toKeyedWithMessage(TextSizeOutOfBount(a.value.length())).invalidNec
+    else
+      zipper.next.left
+        .map(f =>
+            Conversion.toKeyedWithMessage(ZipperFocusOnEnd(f.history))
+        )
+        .toValidatedNec
 
   import TextField._
   import TextAnswer._
 
-  def serializeField(field: Field): Either[ValidatorException, Json] =
+  def serializeField(field: Field): Either[KeyedExceptionWithMessage, Json] =
     field.to[TextField](Text.name).map(_.asJson)
 
-  def deserializeField(field: Json): Either[ValidatorException, Field] =
-    field.as[TextField].left.map(err => DecodingFailure(err.message))
+  def deserializeField(field: Json): Either[KeyedExceptionWithMessage, Field] =
+    field
+      .as[TextField]
+      .left
+      .map(err => Conversion.toKeyedWithMessage(DecodingFailure(err.message)))
 
-  def serializeAnswer(answer: Answer): Either[ValidatorException, Json] =
+  def serializeAnswer(answer: Answer): Either[KeyedExceptionWithMessage, Json] =
     answer.to[TextAnswer](Text.name).map(_.asJson)
 
-  def deserializeAnswer(answer: Json): Either[ValidatorException, Answer] =
-    answer.as[TextAnswer].left.map(err => DecodingFailure(err.message))
+  def deserializeAnswer(
+      answer: Json
+  ): Either[KeyedExceptionWithMessage, Answer] =
+    answer
+      .as[TextAnswer]
+      .left
+      .map(err => Conversion.toKeyedWithMessage(DecodingFailure(err.message)))
 
 }
 
@@ -69,6 +120,10 @@ object Text {
   val name = "text"
 
 }
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////Field////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 final case class TextField(val maxLength: Int, val minLength: Int)
     extends Field {
@@ -98,6 +153,10 @@ object TextField {
     }
 
 }
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////Answer//////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 final case class TextAnswer(val value: String) extends Answer {
 

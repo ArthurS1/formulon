@@ -1,6 +1,5 @@
 package fr.konexii.formulon.presentation
 
-import cats._
 import cats.syntax.all._
 
 import io.circe._
@@ -15,8 +14,7 @@ import scala.util.Try
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application.Plugin
 import fr.konexii.formulon.application.dtos._
-import fr.konexii.formulon.presentation.ValidationExceptionInstances._
-import fr.konexii.formulon.presentation.ValidatorExceptionInstances._
+import fr.konexii.formulon.presentation.Exceptions._
 
 import java.time.format.DateTimeFormatter
 
@@ -133,7 +131,7 @@ sealed trait FieldWithMetadataCirceInstances {
             .deserializeField(data)
             .left
             .map(f =>
-              DecodingFailure.apply(Show[ValidatorException].show(f), c.history)
+              DecodingFailure.apply(f.show, c.history)
             ) // TODO : find a way to remove this dirty fix
           title <- c.downField("title").as[String]
           required <- c.downField("required").as[Boolean]
@@ -141,7 +139,7 @@ sealed trait FieldWithMetadataCirceInstances {
             errs =>
               DecodingFailure(
                 errs
-                  .map(Show[InvariantsException].show(_))
+                  .map( _.show)
                   .toList
                   .mkString(", "),
                 c.history
@@ -192,7 +190,7 @@ sealed trait AnswerCirceInstances {
             .deserializeAnswer(data)
             .left
             .map(f =>
-              DecodingFailure.apply(Show[ValidatorException].show(f), c.history)
+              DecodingFailure.apply(f.show, c.history)
             ) // TODO : find a way to remove this dirty fix
         } yield result
     }

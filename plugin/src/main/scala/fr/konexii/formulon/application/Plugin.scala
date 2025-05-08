@@ -13,13 +13,13 @@ import fr.konexii.formulon.domain._
 trait Plugin {
   def name: String
 
-  def validate: Validator.Validation
+  def validate: Validator.Validation[KeyedExceptionWithMessage]
 
-  def serializeField(field: Field): Either[ValidatorException, Json]
+  def serializeField(field: Field): Either[KeyedExceptionWithMessage, Json]
 
-  def deserializeField(field: Json): Either[ValidatorException, Field]
+  def deserializeField(field: Json): Either[KeyedExceptionWithMessage, Field]
 
-  def serializeAnswer(answer: Answer): Either[ValidatorException, Json]
+  def serializeAnswer(answer: Answer): Either[KeyedExceptionWithMessage, Json]
 
-  def deserializeAnswer(answer: Json): Either[ValidatorException, Answer]
+  def deserializeAnswer(answer: Json): Either[KeyedExceptionWithMessage, Answer]
 }

@@ -6,9 +6,10 @@ import fr.konexii.formulon.domain.Validator._
 
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.EitherValues._
+
 import java.util.UUID
 
-final case class TestException() extends ValidatorException
+final case class TestException()
 
 final case class TestField(name: String = "test") extends Field
 
@@ -17,9 +18,9 @@ final case class TestAnswer(name: String = "test") extends Answer
 class ValidatorSuite extends AnyFunSpec {
 
   def alwaysValidateNext(z: Zipper[Validator.Association]): Either[
-    NonEmptyChain[ValidatorException],
+    NonEmptyChain[ValidatorException[TestException]],
     Zipper[Validator.Association]
-  ] = z.next.left.map(_ => NonEmptyChain.one(TestException()))
+  ] = z.next.left.map(_ => NonEmptyChain.one(PluginException(TestException())))
 
   describe("Validator service") {
     val id = UUID.randomUUID()

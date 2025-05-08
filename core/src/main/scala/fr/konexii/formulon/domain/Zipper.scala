@@ -6,7 +6,7 @@ import fr.konexii.formulon.domain.Tree._
 
 import java.util.UUID
 
-sealed trait ZipperException {
+sealed trait ZipperException extends KeyedException {
   def history: List[ZipperHistory]
 }
 sealed case class FailedToFind(id: UUID, history: List[ZipperHistory])

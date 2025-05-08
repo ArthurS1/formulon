@@ -8,10 +8,10 @@ trait BlueprintAggregate[F[_]] {
 
   def get(id: UUID): F[Entity[Blueprint]]
 
-  def create(schema: Entity[Blueprint]): F[Entity[Blueprint]]
+  def create(blueprint: Entity[Blueprint]): F[Entity[Blueprint]]
 
-  def delete(schema: Entity[Blueprint]): F[Unit]
+  def delete(blueprint: Entity[Blueprint]): F[Unit]
 
-  def update(schema: Entity[Blueprint]): F[Entity[Blueprint]]
+  def update(blueprint: Entity[Blueprint]): F[Entity[Blueprint]]
 
 }

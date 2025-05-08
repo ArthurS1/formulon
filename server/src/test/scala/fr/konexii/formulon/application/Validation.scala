@@ -10,7 +10,7 @@ import fr.konexii.formulon.application.Validation.validateWrapper
 import java.util.UUID
 import io.circe.Json
 
-final case class TestException() extends ValidatorException
+final case class TestException() extends ValidatorException[KeyedExceptionWithMessage]
 
 final case class TestField(name: String = "test") extends Field
 
@@ -21,18 +21,18 @@ class PluginSpy(
   var validateTimesCalled: Int = 0
 ) extends Plugin {
 
-  def validate: Validator.Validation = z => {
+  def validate: Validator.Validation[KeyedExceptionWithMessage] = z => {
     validateTimesCalled += 1
     Right(z)
   }
 
-  def serializeField(field: Field): Either[ValidatorException, Json] = ???
+  def serializeField(field: Field): Either[KeyedExceptionWithMessage, Json] = ???
 
-  def deserializeField(field: Json): Either[ValidatorException, Field] = ???
+  def deserializeField(field: Json): Either[KeyedExceptionWithMessage, Field] = ???
 
-  def serializeAnswer(answer: Answer): Either[ValidatorException, Json] = ???
+  def serializeAnswer(answer: Answer): Either[KeyedExceptionWithMessage, Json] = ???
 
-  def deserializeAnswer(answer: Json): Either[ValidatorException, Answer] = ???
+  def deserializeAnswer(answer: Json): Either[KeyedExceptionWithMessage, Answer] = ???
 
 }
 

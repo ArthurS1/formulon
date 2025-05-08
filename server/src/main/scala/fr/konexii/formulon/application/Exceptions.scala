@@ -11,10 +11,10 @@ final case class CompositeException(exceptions: NonEmptyChain[String])
     extends Exception {
 
   override def getMessage(): String =
-    "Multiple errors were caught : " + exceptions
-      .toList
+    "Multiple errors were caught : " + exceptions.toList
       .mkString(", ")
 
 }
 
-final case class UnauthorizedException(message: String) extends Exception {}
+final case class UnauthorizedException(message: String)
+    extends Exception(message) {}

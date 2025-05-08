@@ -7,11 +7,15 @@ import cats.syntax.all._
 import shapeless.syntax.typeable._
 import shapeless.Typeable
 
-sealed trait CastException extends ValidatorException
+sealed trait CastException extends KeyedExceptionWithMessage
 
-final case class CastFailure(typeName: String) extends CastException
+final case class CastFailure(typeName: String) extends CastException {
+  val message = s"Failure to cast a $typeName."
+}
 final case class NameTypeCheckFailure(typeNameA: String, typeNameB: String)
-    extends CastException
+    extends CastException {
+  val message = s"Types did not match $typeNameA != $typeNameB."
+}
 
 object Casts {
 

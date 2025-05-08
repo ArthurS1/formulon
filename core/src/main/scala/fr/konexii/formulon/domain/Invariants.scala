@@ -4,7 +4,7 @@ import cats.syntax.all._
 
 import cats.data._
 
-sealed trait InvariantsException
+sealed trait InvariantsException extends KeyedException
 sealed case class Empty() extends InvariantsException
 sealed case class TooLong(nbMaxChar: Int) extends InvariantsException
 sealed case class NotAlphaNumeric() extends InvariantsException

@@ -14,9 +14,9 @@ class SetActiveVersion[F[_]: MonadThrow: Logger](
     repositories: Repositories[F]
 ) {
 
-  def execute(schemaId: UUID, versionId: UUID, role: Role): F[Unit] =
+  def execute(blueprintId: UUID, versionId: UUID, role: Role): F[Unit] =
     for {
-      schema <- repositories.blueprint.get(schemaId)
+      schema <- repositories.blueprint.get(blueprintId)
       version <- MonadThrow[F].fromOption(
         schema.data.versions.find(_.id === versionId),
         new Exception(s"Could not find version $versionId.")

@@ -113,5 +113,6 @@ lazy val server = project
     libraryDependencies += "org.tpolecat" %% "natchez-core" % "0.3.7",
     // Testing
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+    libraryDependencies += "org.typelevel" %% "log4cats-noop" % log4catsVersion % Test,
   )
   .dependsOn(plugins)

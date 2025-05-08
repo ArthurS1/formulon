@@ -7,7 +7,7 @@ import cats.effect.std.UUIDGen
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
 import fr.konexii.formulon.application.dtos.CreateBlueprintRequest
-import fr.konexii.formulon.presentation.ValidationExceptionInstances._
+import fr.konexii.formulon.presentation.Exceptions._
 
 import org.typelevel.log4cats.Logger
 
@@ -27,7 +27,7 @@ class CreateBlueprint[F[_]: MonadThrow: UUIDGen: Logger](
       newBlueprint <- MonadThrow[F].fromValidated(
         Blueprint(newSchemaRequest.name, tag)
           .leftMap(err =>
-            CompositeException(err.map(Show[InvariantsException].show(_)))
+            CompositeException(err.map(_.show))
           )
       )
       newBlueprintEntity <- repositories.blueprint.create(

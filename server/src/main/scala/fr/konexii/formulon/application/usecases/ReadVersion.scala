@@ -12,9 +12,9 @@ import org.typelevel.log4cats.Logger
 
 class ReadVersion[F[_]: MonadThrow: Logger](respositories: Repositories[F]) {
 
-  def execute(schemaId: UUID, versionId: UUID, role: Role): F[Entity[Version]] =
+  def execute(blueprintId: UUID, versionId: UUID, role: Role): F[Entity[Version]] =
     for {
-      blueprint <- respositories.blueprint.get(schemaId)
+      blueprint <- respositories.blueprint.get(blueprintId)
       result <- MonadThrow[F].fromOption(
         blueprint.data.versions.find(e => e.id === versionId),
         new Exception(s"Failed to find schema version with id $versionId.")

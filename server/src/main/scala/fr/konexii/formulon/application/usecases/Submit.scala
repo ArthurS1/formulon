@@ -6,49 +6,40 @@ import cats.effect.std._
 
 import java.util.UUID
 
-import io.circe._
-import io.circe.parser.decode
-
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
 import fr.konexii.formulon.application.Validation._
-import fr.konexii.formulon.presentation.Serialization._
-import fr.konexii.formulon.presentation.ValidatorExceptionInstances._
+import fr.konexii.formulon.presentation.Exceptions._
 
 class Submit[F[_]: MonadThrow: UUIDGen](
-    repositories: Repositories[F],
-    plugins: List[Plugin]
+  repositories: Repositories[F],
+  plugins: List[Plugin]
 ) {
 
-  implicit val decoder: Decoder[Answer] = decoderForAnswer(plugins)
-
   def execute(
-      schemaId: UUID,
+      blueprintId: UUID,
       versionId: UUID,
-      rawSubmission: String
+      submission: Submission
   ): F[Unit] = for {
     uuid <- UUIDGen[F].randomUUID
-    submission <- MonadThrow[F].fromEither(
-      decode[Submission](rawSubmission)
-        .map(Entity(uuid, _))
-    )
-    blueprint <- repositories.blueprint.get(schemaId)
+    submissionEntity = Entity(uuid, submission)
+    blueprint <- repositories.blueprint.get(blueprintId)
     version <- MonadThrow[F].fromOption(
       blueprint.data.versions.find(e => e.id === versionId),
-      new Exception(s"Failed to find version $versionId in schema $schemaId.")
+      new Exception(s"Failed to find version $versionId in schema $blueprint.")
     )
     _ <- MonadThrow[F].fromEither(
       Validator
         .validate(
           version.data.content,
-          submission.data,
+          submissionEntity.data,
           validateWrapper(plugins)
         )
         .leftMap(errors =>
-          CompositeException(errors.map(Show[ValidatorException].show(_)))
+          CompositeException(errors.map(_.show))
         )
     )
-    _ <- repositories.submission.create(submission, version)
+    _ <- repositories.submission.create(submissionEntity, version)
   } yield ()
 
 }

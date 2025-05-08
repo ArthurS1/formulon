@@ -4,32 +4,22 @@ import cats._
 import cats.effect._
 import cats.syntax.all._
 
-import io.circe._
-import io.circe.parser.decode
-
 import java.util.UUID
 
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
-import fr.konexii.formulon.presentation.Serialization._
 
 import org.typelevel.log4cats.Logger
 
-class CreateVersion[F[_]: Sync: Logger](repositories: Repositories[F], plugins: List[Plugin]) {
-
-  implicit val decoder: Decoder[FieldWithMetadata] =
-    decoderForFieldWithMetadata(plugins)
+class CreateVersion[F[_]: Sync: Logger](repositories: Repositories[F]) {
 
   def execute(
       uuid: UUID,
-      rawVersion: String,
+      tree: Tree[Entity[FieldWithMetadata]],
       role: Role
   ): F[Entity[Version]] =
     for {
       blueprint <- repositories.blueprint.get(uuid)
-      tree <- MonadThrow[F].fromEither(
-        decode[Tree[Entity[FieldWithMetadata]]](rawVersion)
-      )
       result <- blueprint.data.addNewVersion(tree)
       (newBlueprint, newVersion) = result
       _ <- authorize(blueprint, newVersion, role)

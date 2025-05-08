@@ -8,12 +8,15 @@ import java.util.UUID
 import fr.konexii.formulon.domain._
 
 final case class PluginNotFound(id: UUID, pluginName: String)
-    extends ValidatorException
-final case class FailedToGetZipperContent() extends ValidatorException
+    extends ValidatorException[KeyedExceptionWithMessage]
+final case class FailedToGetZipperContent()
+    extends ValidatorException[KeyedExceptionWithMessage]
 
 object Validation {
 
-  def validateWrapper(plugins: List[Plugin]): Validator.Validation =
+  def validateWrapper(
+      plugins: List[Plugin]
+  ): Validator.Validation[ValidatorException[KeyedExceptionWithMessage]] =
     (z: Zipper[Validator.Association]) => {
       val plugin = for {
         association <- Either.fromOption(z.content, FailedToGetZipperContent())
@@ -25,7 +28,7 @@ object Validation {
 
       plugin.left
         .map(NonEmptyChain.one(_))
-        .flatMap(_.validate(z))
+        .flatMap(_.validate(z).left.map(e => e.map(ke => PluginException(ke))))
     }
 
 }
