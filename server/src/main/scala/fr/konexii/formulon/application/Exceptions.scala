@@ -11,8 +11,12 @@ final case class CompositeException(exceptions: NonEmptyChain[String])
     extends Exception {
 
   override def getMessage(): String =
-    "Multiple errors were caught : " + exceptions.toList
-      .mkString(", ")
+    if (exceptions.size === 1)
+      "An error was caught : " + exceptions.toList
+        .mkString(", ")
+    else
+      "Multiple errors were caught : " + exceptions.toList
+        .mkString(", ")
 
 }
 

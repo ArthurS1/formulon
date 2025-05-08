@@ -12,8 +12,8 @@ import fr.konexii.formulon.application.Validation._
 import fr.konexii.formulon.presentation.Exceptions._
 
 class Submit[F[_]: MonadThrow: UUIDGen](
-  repositories: Repositories[F],
-  plugins: List[Plugin]
+    repositories: Repositories[F],
+    plugins: List[Plugin]
 ) {
 
   def execute(
@@ -35,9 +35,7 @@ class Submit[F[_]: MonadThrow: UUIDGen](
           submissionEntity.data,
           validateWrapper(plugins)
         )
-        .leftMap(errors =>
-          CompositeException(errors.map(_.show))
-        )
+        .leftMap(errors => CompositeException(errors.map(_.show)))
     )
     _ <- repositories.submission.create(submissionEntity, version)
   } yield ()

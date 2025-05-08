@@ -10,7 +10,7 @@ import fr.konexii.formulon.application.Validation.validateWrapper
 import java.util.UUID
 import io.circe.Json
 
-final case class TestException() extends ValidatorException[KeyedExceptionWithMessage]
+final case class TestException(message: String = "test") extends KeyedExceptionWithMessage
 
 final case class TestField(name: String = "test") extends Field
 

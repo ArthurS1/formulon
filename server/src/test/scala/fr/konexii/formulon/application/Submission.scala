@@ -41,20 +41,26 @@ class SubmissionSuite extends AnyFunSpec {
 
         it("submits a new answer") {
           val repositories = new RepositoriesSpy
+          val plugin = new PluginSpy("test")
 
-          new Submit(repositories, List())
+          new Submit(repositories, List(plugin))
             .execute(
               repositories.blueprint.withVersion.id,
               repositories.blueprint.versionA.id,
-              repositories.submission.basic
+              repositories.submission.withVersion
             )
-            .unsafeRunSync() : Unit
+            .unsafeRunSync(): Unit
 
           assertResult(Some(repositories.blueprint.withVersion.id))(
             repositories.blueprint.readWith
           )
-          assertResult(Some(repositories.submission.basic))(repositories.submission.withCreate.map(_._1.data))
-          assertResult(Some(repositories.blueprint.versionA))(repositories.submission.withCreate.map(_._2))
+          assertResult(Some(repositories.submission.withVersion))(
+            repositories.submission.withCreate.map(_._1.data)
+          )
+          assertResult(Some(repositories.blueprint.versionA))(
+            repositories.submission.withCreate.map(_._2)
+          )
+          assertResult(1)(plugin.validateTimesCalled)
         }
 
       }

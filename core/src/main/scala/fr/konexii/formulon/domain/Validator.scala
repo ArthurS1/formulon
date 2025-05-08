@@ -6,12 +6,12 @@ import cats.syntax.all._
 import fr.konexii.formulon.domain.Tree._
 import java.util.UUID
 
-trait ValidatorException[E] extends KeyedException
-final case class RequiredFieldNotFound[E](id: UUID)
+sealed trait ValidatorException[E] extends KeyedException
+sealed case class RequiredFieldNotFound[E](id: UUID)
+   extends ValidatorException[E]
+sealed case class TypesDiffer[E](id: UUID, typeA: String, typeB: String)
     extends ValidatorException[E]
-final case class TypesDiffer[E](id: UUID, typeA: String, typeB: String)
-    extends ValidatorException[E]
-final case class PluginException[E](e: E) extends ValidatorException[E]
+sealed case class PluginException[E](e: E) extends ValidatorException[E]
 
 object Validator {
 

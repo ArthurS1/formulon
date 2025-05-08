@@ -14,10 +14,30 @@ class RepositoriesSpy extends Repositories[SyncIO] {
   val submission = new SubmissionAggregateSpy
 }
 
+object A {
+
+  val aId = UUID.randomUUID
+
+}
+
+
 class BlueprintAggregateSpy extends BlueprintAggregate[SyncIO] {
 
   val versionA =
-    Entity(UUID.randomUUID, Version.apply[SyncIO](End()).unsafeRunSync())
+    Entity(
+      UUID.randomUUID,
+      Version
+        .apply[SyncIO](
+          Trunk(
+            Entity(
+              A.aId,
+              new FieldWithMetadata("title", true, TestField())
+            ),
+            End()
+          )
+        )
+        .unsafeRunSync()
+    )
   val versionB =
     Entity(UUID.randomUUID, Version.apply[SyncIO](End()).unsafeRunSync())
   val basic =
@@ -25,7 +45,10 @@ class BlueprintAggregateSpy extends BlueprintAggregate[SyncIO] {
   val withVersion =
     Entity(UUID.randomUUID, Blueprint("B", "b", List(versionA), None))
   val withActiveVersion =
-    Entity(UUID.randomUUID, Blueprint("C", "c", List(versionA, versionB), Some(versionA)))
+    Entity(
+      UUID.randomUUID,
+      Blueprint("C", "c", List(versionA, versionB), Some(versionA))
+    )
   val list = List(basic, withVersion, withActiveVersion)
 
   var readWith: Option[UUID] = None
@@ -56,7 +79,9 @@ class BlueprintAggregateSpy extends BlueprintAggregate[SyncIO] {
 
 class SubmissionAggregateSpy extends SubmissionAggregate[SyncIO] {
 
+  val answer = TestAnswer()
   val basic = Submission(List())
+  val withVersion = Submission(List(Entity(A.aId, answer)))
 
   var withCreate: Option[(Entity[Submission], Entity[Version])] = None
   def create(
