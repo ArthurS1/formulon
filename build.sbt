@@ -6,6 +6,9 @@ val http4sVersion = "0.23.30"
 val circeVersion = "0.14.10"
 val log4catsVersion = "2.7.0"
 val skunkVersion = "0.6.4"
+// This version is needed because log4cats depends on this slf4j-api version.
+// If we update it, it brakes assembly.
+val slf4jSimpleVersion = "1.7.36"
 
 val compilerOptions = Seq(
   "-encoding", "utf8",
@@ -26,9 +29,6 @@ val compilerOptions = Seq(
 val testCompilerOptions = compilerOptions ++ Seq(
   "-Wconf:msg=unused value of type org.scalatest.Assertion:s",
 )
-
-// Sbt plugin for bloop (needed by metals)
-addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "2.0.9")
 
 /*
  * CORE
@@ -85,6 +85,7 @@ lazy val server = project
     organization := "fr.konexii",
     Compile / scalacOptions := compilerOptions,
     Test / scalacOptions := testCompilerOptions,
+    assembly / assemblyJarName := s"formulon-${version.value}.jar",
     // Http4s specific configuration
     run / fork := true,
     // Http4s & ember
@@ -108,11 +109,11 @@ lazy val server = project
     libraryDependencies += "com.github.jwt-scala" %% "jwt-circe" % "10.0.4",
     // Logging
     libraryDependencies += "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
-    libraryDependencies += "org.slf4j" % "slf4j-simple" % "2.0.17",
+    libraryDependencies += "org.typelevel" %% "log4cats-noop" % log4catsVersion % Test,
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % slf4jSimpleVersion,
     // Tracing (necessary for skunk at this point, should be replaced by otel)
     libraryDependencies += "org.tpolecat" %% "natchez-core" % "0.3.7",
     // Testing
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    libraryDependencies += "org.typelevel" %% "log4cats-noop" % log4catsVersion % Test,
   )
   .dependsOn(plugins)
