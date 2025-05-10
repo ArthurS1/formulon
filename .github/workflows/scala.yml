@@ -22,12 +22,10 @@ jobs:
       uses: sbt/setup-sbt@v1.1.5
     - name: Assemble Scala 2.13 source
       run: sbt -v server/assembly
-    - name: Get project version from sbt
-      run: echo "VERSION=$(sbt -batch -error 'print version' | tr -d '\r\n')" >> $GITHUB_ENV
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.6.1
       with:
-        name: 'build'
+        name: 'build-${{ github.sha }}'
         path: 'server/target/scala-2.13/formulon-*.jar'
         if-no-files-found: error
     - name: Sbt Dependency Submission
