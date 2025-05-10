@@ -19,7 +19,7 @@ jobs:
         distribution: 'temurin'
         cache: 'sbt'
     - name: Setup sbt installer
-      uses: sbt/setup-sbt@v1.1.5
+      uses: sbt/setup-sbt@v1.1.7
     - name: Assemble Scala 2.13 source
       run: sbt -v server/assembly
     - name: Upload a Build Artifact

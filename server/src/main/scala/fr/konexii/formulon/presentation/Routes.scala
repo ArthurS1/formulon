@@ -30,7 +30,8 @@ class Routes(
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   implicit val answerEncoder: Encoder[Answer] = encoderForAnswer(plugins)
-  implicit val fieldEncoder: Encoder[FieldWithMetadata] = encoderForFieldWithMetadata(plugins)
+  implicit val fieldEncoder: Encoder[FieldWithMetadata] =
+    encoderForFieldWithMetadata(plugins)
   implicit val fieldDecoder: Decoder[FieldWithMetadata] =
     decoderForFieldWithMetadata(plugins)
   implicit val answerDecoder: Decoder[Answer] = decoderForAnswer(plugins)
@@ -143,7 +144,9 @@ class Routes(
           response <- Created()
         } yield response
       // get all submissions associated with a specific version of the form
-      case GET -> Root / "blueprint" / UUIDVar(blueprintId) / "version" / UUIDVar(
+      case GET -> Root / "blueprint" / UUIDVar(
+            blueprintId
+          ) / "version" / UUIDVar(
             versionId
           ) / "submissions" =>
         for {
@@ -153,16 +156,17 @@ class Routes(
         } yield response
     }
 
-  val routes = submissionRoutes <+>
-    roleMiddleware(authedBlueprintRoutes) <+>
-    roleMiddleware(authedVersionRoutes) <+>
+  val routes = infrastructureRoutes <+>
     versionRoutes <+>
-    infrastructureRoutes
+    submissionRoutes <+>
+    roleMiddleware(authedBlueprintRoutes) <+>
+    roleMiddleware(authedVersionRoutes)
 
   type OptionTIO[A] = OptionT[IO, A]
 
   def getRole(key: String): Kleisli[OptionTIO, Request[IO], Role] =
-    Kleisli(request =>
+    Kleisli(request => {
+      println(s"YO ${request.uri.toString}")
       request.headers.get[Authorization] match {
         case Some(Authorization(Credentials.Token(AuthScheme.Bearer, token))) =>
           Jwt.decodeAndValidate(token, key) match {
@@ -178,8 +182,7 @@ class Routes(
               "Failure to find the credential within the Authorization header of the request."
             )
           ) >> OptionT.none[IO, Role]
-
       }
-    )
+    })
 
 }
