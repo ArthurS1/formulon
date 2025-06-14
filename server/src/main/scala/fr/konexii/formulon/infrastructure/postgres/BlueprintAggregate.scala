@@ -40,10 +40,12 @@ class BlueprintAggregate[F[_]: Async](
 
   private val chunkSize = 64
 
+  private val blueprintTable = uuid ~ varchar(80) ~ uuid.opt ~ varchar(80)
+
   private def blueprintEntity(
       versions: List[Entity[Version]]
   ): Decoder[Entity[Blueprint]] =
-    (uuid ~ varchar(80) ~ uuid.opt ~ varchar(80)).emap { case id ~ name ~ activeId ~ orgName =>
+    (blueprintTable).emap { case id ~ name ~ activeId ~ orgName =>
       for {
         activeVersion <- activeId
           .map(activeId =>
@@ -56,8 +58,11 @@ class BlueprintAggregate[F[_]: Async](
       } yield Entity(id, Blueprint(name, orgName, versions, activeVersion))
     }
 
+  private val versionTable =
+    uuid ~ timestamp ~ uuid ~ jsonb[Tree[Entity[FieldWithMetadata]]]
+
   lazy val versionEntity: Decoder[Entity[Version]] =
-    (uuid ~ timestamp ~ uuid ~ jsonb[Tree[Entity[FieldWithMetadata]]])
+    (versionTable)
       .map { case id ~ date ~ _ ~ content =>
         Entity(id, Version(date, content))
       }
@@ -148,7 +153,9 @@ class BlueprintAggregate[F[_]: Async](
           .query(blueprintEntity(updatedVersions))
         preparedBlueprintQuery <- s.prepare(blueprintQuery)
         blueprint <- preparedBlueprintQuery.unique(
-          blueprint.data.name *: blueprint.data.active.map(_.id) *: blueprint.id *: HNil
+          blueprint.data.name *: blueprint.data.active.map(
+            _.id
+          ) *: blueprint.id *: HNil
         )
       } yield blueprint
     )
@@ -192,6 +199,43 @@ class BlueprintAggregate[F[_]: Async](
         blueprint <- preparedBlueprintQuery.unique(id)
       } yield blueprint
     )
+  }
+
+  def getAll(): F[List[Entity[Blueprint]]] = db.use { s =>
+    val query =
+      sql"""SELECT s.id, name, active_schema_id, sv.id, date, content
+            FROM schemas s
+            LEFT JOIN schema_versions sv
+            ON sv.schema_id = s.id"""
+        .query(blueprintTable ~ versionTable)
+
+    s.transaction.use(_ =>
+      for {
+        result <- s.execute(query)
+        versions = result.map {
+          case _ ~ (id ~ date ~ schemaId ~ content) =>
+            (schemaId, Entity(id, Version(date, content)))
+        }
+        blueprints = result
+          .map(_._1)
+          .distinct
+          .map {
+            case id ~ name ~ active ~ tag =>
+              Entity(
+                id,
+                Blueprint(
+                  name,
+                  tag,
+                  versions.filter(_._1 === id).map(_._2),
+                  active.flatMap(activeId =>
+                    versions.map(_._2).find(_.id === activeId)
+                  )
+                )
+              )
+            }
+      } yield blueprints
+    )
+
   }
 
 }

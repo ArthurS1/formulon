@@ -8,6 +8,8 @@ trait BlueprintAggregate[F[_]] {
 
   def get(id: UUID): F[Entity[Blueprint]]
 
+  def getAll(): F[List[Entity[Blueprint]]]
+
   def create(blueprint: Entity[Blueprint]): F[Entity[Blueprint]]
 
   def delete(blueprint: Entity[Blueprint]): F[Unit]

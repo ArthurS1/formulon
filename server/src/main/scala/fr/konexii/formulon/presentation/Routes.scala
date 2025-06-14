@@ -117,6 +117,13 @@ class Routes(
             .execute(id, role)
           response <- Ok(blueprint)
         } yield response
+      // get all blueprints
+      case GET -> Root / "blueprints" as role =>
+        for {
+          blueprints <- new usecases.ReadBlueprints[IO](repositories)
+            .execute(role)
+          response <- Ok(blueprints)
+        } yield response
       // update the blueprint
       case authedReq @ PUT -> Root / "blueprint" / UUIDVar(id) as role =>
         for {
@@ -166,7 +173,6 @@ class Routes(
 
   def getRole(key: String): Kleisli[OptionTIO, Request[IO], Role] =
     Kleisli(request => {
-      println(s"YO ${request.uri.toString}")
       request.headers.get[Authorization] match {
         case Some(Authorization(Credentials.Token(AuthScheme.Bearer, token))) =>
           Jwt.decodeAndValidate(token, key) match {

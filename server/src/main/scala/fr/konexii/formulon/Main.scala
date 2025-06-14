@@ -112,6 +112,7 @@ object Main extends IOApp {
       logHeaders = true,
       logBody = true
     )(
+      CORS.policy.withAllowOriginAll(routes) <+>
       ErrorHandling.Custom.recoverWith(routes) {
         case e: UnauthorizedException =>
           OptionT.liftF(
