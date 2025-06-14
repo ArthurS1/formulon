@@ -57,6 +57,8 @@ class BlueprintAggregateSpy extends BlueprintAggregate[SyncIO] {
     SyncIO.pure(list.find(e => e.id === id).getOrElse(basic))
   }
 
+  def getAll(): SyncIO[List[Entity[Blueprint]]] = SyncIO.pure(list)
+
   var createdWith: Option[Entity[Blueprint]] = None
   def create(blueprint: Entity[Blueprint]): SyncIO[Entity[Blueprint]] = {
     createdWith = Some(blueprint)
@@ -74,6 +76,7 @@ class BlueprintAggregateSpy extends BlueprintAggregate[SyncIO] {
     updatedWith = Some(blueprint)
     SyncIO.pure(blueprint)
   }
+
 
 }
 
