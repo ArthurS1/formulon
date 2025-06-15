@@ -12,52 +12,108 @@ import io.circe.generic.semiauto._
 
 import fr.konexii.formulon.application._
 
+case class RealmAccess(
+    roles: List[String]
+)
+
 case class KeycloakToken(
-    iss: String,
-    sub: String,
-    aud: String,
-    exp: LocalDateTime,
-    nbf: LocalDateTime,
-    iat: LocalDateTime,
-    role: String
+    issuer: String,
+    subject: String,
+    audience: String,
+    expires: LocalDateTime,
+    notBefore: LocalDateTime,
+    issuedAt: LocalDateTime,
+    realmAccess: RealmAccess,
+    groups: List[String],
+    email: String
 )
 
 object KeycloakTokenProcessor extends TokenProcessor {
 
+  private implicit val decoderForRealmAccess: Decoder[RealmAccess] =
+    deriveDecoder[RealmAccess]
+
+  private implicit val encoderForRealmAccess: Encoder[RealmAccess] =
+    deriveEncoder[RealmAccess]
+
   private implicit val decoderForKeycloakToken: Decoder[KeycloakToken] =
-    deriveDecoder[KeycloakToken]
+    new Decoder[KeycloakToken] {
+      def apply(c: HCursor): Decoder.Result[KeycloakToken] = for {
+        iss <- c.downField("iss").as[String]
+        sub <- c.downField("sub").as[String]
+        aud <- c.downField("aud").as[String]
+        exp <- c.downField("exp").as[LocalDateTime]
+        nbf <- c.downField("nbf").as[LocalDateTime]
+        iat <- c.downField("iat").as[LocalDateTime]
+        realmAccess <- c.downField("realm_access").as[RealmAccess]
+        groups <- c.downField("groups").as[List[String]]
+        email <- c.downField("email").as[String]
+      } yield KeycloakToken(
+        issuer = iss,
+        subject = sub,
+        audience = aud,
+        expires = exp,
+        notBefore = nbf,
+        issuedAt = iat,
+        realmAccess,
+        groups,
+        email
+      )
+    }
 
   private implicit val encoderForKeycloakToken: Encoder[KeycloakToken] =
-    deriveEncoder[KeycloakToken]
+    new Encoder[KeycloakToken] {
+      def apply(a: KeycloakToken): Json = Json.obj(
+        ("iss", Json.fromString(a.issuer)),
+        ("sub", Json.fromString(a.subject)),
+        ("aud", Json.fromString(a.audience)),
+        ("exp", a.expires.asJson),
+        ("nbf", a.notBefore.asJson),
+        ("iat", a.issuedAt.asJson),
+        ("realm_access", a.realmAccess.asJson),
+        ("groups", a.groups.asJson),
+        ("email", Json.fromString(a.email))
+      )
+    }
 
   private def validate(token: String, key: String): Option[Json] =
     JwtCirce
-      .decodeJson(token, key, Seq(JwtAlgorithm.HS256))
+      .decodeJson(token, key, Seq(JwtAlgorithm.RS256))
       .toOption
 
-  private def roleFrom(jwt: KeycloakToken): Option[Role] = jwt match {
-    case KeycloakToken(
-          "http://localhost:8080",
-          sub,
-          "formulon",
-          exp,
-          nbf,
-          iat,
-          "admin"
-        ) =>
-      Some(Admin())
-    case KeycloakToken(
-          "http://localhost:8080",
-          sub,
-          "formulon",
-          exp,
-          nbf,
-          iat,
-          org
-        ) =>
-      Some(Org(org, sub))
-    case _ => None
-  }
+  private def roleFrom(jwt: KeycloakToken): Either[KeycloakToken, Role] =
+    jwt match {
+      case KeycloakToken(
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            RealmAccess(
+              roles
+            ),
+            _,
+            _
+          ) if roles.contains("administrator") =>
+        Right(Admin())
+      case KeycloakToken(
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            RealmAccess(
+              roles
+            ),
+            group :: _,
+            email
+          ) if roles.contains("editor") =>
+        Right(Editor(group, email))
+      case _ =>
+        Left(jwt)
+    }
 
   def decodeAndValidate(
       token: String,
@@ -72,9 +128,8 @@ object KeycloakTokenProcessor extends TokenProcessor {
         .as[KeycloakToken]
         .left
         .map(err => s"Failed to parse JWT json ${err.message}.")
-      role <- Either.fromOption(
-        roleFrom(jwt),
-        s"Failed to match the JWT to a role ${jwt.asJson.toString()}."
+      role <- roleFrom(jwt).left.map(incorrectToken =>
+        s"Failed to match the JWT to a role ${incorrectToken}."
       )
     } yield role
   }

@@ -15,8 +15,8 @@ import io.circe._
 import fr.konexii.formulon.domain._
 import fr.konexii.formulon.application._
 import fr.konexii.formulon.application.dtos._
+import fr.konexii.formulon.infrastructure._
 import fr.konexii.formulon.presentation.Serialization._
-import fr.konexii.formulon.infrastructure.Jwt
 
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -37,7 +37,7 @@ class Routes(
   implicit val answerDecoder: Decoder[Answer] = decoderForAnswer(plugins)
 
   val roleMiddleware: AuthMiddleware[IO, Role] =
-    AuthMiddleware(getRole(secretKey))
+    AuthMiddleware(getRole(secretKey, KeycloakTokenProcessor))
 
   val infrastructureRoutes = HttpRoutes
     .of[IO] { case GET -> Root / "ping" =>
@@ -171,11 +171,11 @@ class Routes(
 
   type OptionTIO[A] = OptionT[IO, A]
 
-  def getRole(key: String): Kleisli[OptionTIO, Request[IO], Role] =
+  def getRole(key: String, processor: TokenProcessor): Kleisli[OptionTIO, Request[IO], Role] =
     Kleisli(request => {
       request.headers.get[Authorization] match {
         case Some(Authorization(Credentials.Token(AuthScheme.Bearer, token))) =>
-          Jwt.decodeAndValidate(token, key) match {
+          processor.decodeAndValidate(token, key) match {
             case Left(value) =>
               OptionT.liftF(
                 Logger[IO].warn(s"Authorization: $value")
