@@ -74,7 +74,7 @@ object Main extends IOApp {
         >> IO(plugins)
     )
 
-  lazy val builtinPlugins: List[Plugin] = List(Text()/*, Select()*/)
+  lazy val builtinPlugins: List[Plugin] = List(Text() /*, Select()*/ )
 
   def server(
       conf: Valid,
@@ -113,25 +113,25 @@ object Main extends IOApp {
       logBody = true
     )(
       CORS.policy.withAllowOriginAll(routes) <+>
-      ErrorHandling.Custom.recoverWith(routes) {
-        case e: UnauthorizedException =>
-          OptionT.liftF(
-            for {
-              _ <- Logger[IO].warn(e)(
-                s"""Authorization failure : ${e.toString}"""
-              )
-            } yield Response[IO](status = Status.Forbidden)
-              .withEntity("Unauthorized to interact with this resource.")
-          )
-        case e: Exception =>
-          OptionT.liftF(
-            for {
-              _ <- Logger[IO].error(e)(
-                s"""An error was never caught : ${e.toString}"""
-              )
-            } yield Response[IO](status = Status.InternalServerError)
-          )
-      }
+        ErrorHandling.Custom.recoverWith(routes) {
+          case e: UnauthorizedException =>
+            OptionT.liftF(
+              for {
+                _ <- Logger[IO].warn(e)(
+                  s"""Authorization failure : ${e.toString}"""
+                )
+              } yield Response[IO](status = Status.Forbidden)
+                .withEntity("Unauthorized to interact with this resource.")
+            )
+          case e: Exception =>
+            OptionT.liftF(
+              for {
+                _ <- Logger[IO].error(e)(
+                  s"""An error was never caught : ${e.toString}"""
+                )
+              } yield Response[IO](status = Status.InternalServerError)
+            )
+        }
     )
 
 }
