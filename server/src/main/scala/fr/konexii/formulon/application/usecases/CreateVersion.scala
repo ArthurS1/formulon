@@ -36,13 +36,13 @@ class CreateVersion[F[_]: Sync: Logger](repositories: Repositories[F]) {
         Logger[F].info(
           s"Admin created ${version.id} on blueprint ${blueprint.id}."
         )
-      case Org(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
+      case Editor(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
             s"$identifier unauthorized to create new version on blueprint ${blueprint.id}."
           )
         )
-      case Org(orgName, identifier) =>
+      case Editor(orgName, identifier) =>
         Logger[F].info(
           s"$identifier created ${version.id} on blueprint ${blueprint.id}."
         )

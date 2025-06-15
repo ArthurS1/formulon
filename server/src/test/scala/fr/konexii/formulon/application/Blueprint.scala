@@ -32,7 +32,7 @@ class BlueprintSuite extends AnyFunSpec {
           val result = new CreateBlueprint[SyncIO](repositories)
             .execute(
               CreateBlueprintRequest(name = "A"),
-              Org("a", "arthur@icloud.com")
+              Editor("a", "arthur@icloud.com")
             )
             .unsafeRunSync()
 
@@ -50,7 +50,7 @@ class BlueprintSuite extends AnyFunSpec {
             .execute(
               UpdateBlueprintRequest(newName),
               repositories.blueprint.basic.id,
-              Org("a", "arthur@icloud.com")
+              Editor("a", "arthur@icloud.com")
             )
             .unsafeRunSync()
 
@@ -74,7 +74,7 @@ class BlueprintSuite extends AnyFunSpec {
           val repositories = new RepositoriesSpy
 
           new DeleteBlueprint[SyncIO](repositories)
-            .execute(repositories.blueprint.basic.id, Org("a", "arthur@icloud.com"))
+            .execute(repositories.blueprint.basic.id, Editor("a", "arthur@icloud.com"))
             .unsafeRunSync()
 
           assertResult(
@@ -95,7 +95,7 @@ class BlueprintSuite extends AnyFunSpec {
           val id = UUID.randomUUID
 
           new ReadBlueprint[SyncIO](RepositoriesSpy)
-            .execute(id, Org("a", "arthur@icloud.com"))
+            .execute(id, Editor("a", "arthur@icloud.com"))
             .unsafeRunSync(): Unit
 
           assertResult(

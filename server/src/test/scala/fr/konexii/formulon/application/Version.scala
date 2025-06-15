@@ -43,7 +43,7 @@ class VersionSuite extends AnyFunSpec {
           val result = new ReadVersionList(repositories)
             .execute(
               repositories.blueprint.withVersion.id,
-              Org("b", "arthur@icloud.com")
+              Editor("b", "arthur@icloud.com")
             )
             .unsafeRunSync()
 
@@ -60,7 +60,7 @@ class VersionSuite extends AnyFunSpec {
             .execute(
               repositories.blueprint.withVersion.id,
               repositories.blueprint.withVersion.data.versions.head.id,
-              Org("b", "arthur@icloud.com")
+              Editor("b", "arthur@icloud.com")
             )
             .unsafeRunSync()
 
@@ -78,7 +78,7 @@ class VersionSuite extends AnyFunSpec {
           new UnsetActiveVersion(repositories)
             .execute(
               repositories.blueprint.withActiveVersion.id,
-              Org("c", "arthur@icloud.com")
+              Editor("c", "arthur@icloud.com")
             )
             .unsafeRunSync()
 
@@ -103,7 +103,7 @@ class VersionSuite extends AnyFunSpec {
             .execute(
               repositories.blueprint.withActiveVersion.id,
               repositories.blueprint.withActiveVersion.data.versions.last.id,
-              Org("c", "arthur@icloud.com")
+              Editor("c", "arthur@icloud.com")
             )
             .unsafeRunSync()
 
@@ -132,7 +132,7 @@ class VersionSuite extends AnyFunSpec {
             .execute(
               repositories.blueprint.basic.id,
               End(),
-              Org("a", "arthur@icloud.com")
+              Editor("a", "arthur@icloud.com")
             )
             .unsafeRunSync(): Unit
 

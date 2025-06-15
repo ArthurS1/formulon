@@ -43,7 +43,7 @@ class CreateBlueprint[F[_]: MonadThrow: UUIDGen: Logger](
             s"Admin unauthorized to create blueprint."
           )
         )
-      case Org(orgName, identifier) =>
+      case Editor(orgName, identifier) =>
         Logger[F]
           .info(s"$identifier creating blueprint.")
           .map(_ => orgName)

@@ -29,13 +29,13 @@ class UnsetActiveVersion[F[_]: MonadThrow: Logger](
         Logger[F].info(
           s"Admin disabled active version on blueprint ${blueprint.id}."
         )
-      case Org(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
+      case Editor(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
             s"$identifier unauthorized to disable active version on blueprint ${blueprint.id}."
           )
         )
-      case Org(orgName, identifier) =>
+      case Editor(orgName, identifier) =>
         Logger[F].info(
           s"$identifier disabled active version on blueprint ${blueprint.id}."
         )

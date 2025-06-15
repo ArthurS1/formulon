@@ -22,13 +22,13 @@ class DeleteBlueprint[F[_]: MonadThrow: Logger](repositories: Repositories[F]) {
   private def authorize(blueprint: Entity[Blueprint], role: Role): F[Unit] =
     role match {
       case Admin() => Logger[F].info(s"Admin deleted blueprint ${blueprint.id}.")
-      case Org(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
+      case Editor(orgName, identifier) if (orgName =!= blueprint.data.tag) =>
         MonadThrow[F].raiseError[Unit](
           new UnauthorizedException(
             s"$identifier unauthorized to delete blueprint ${blueprint.id}."
           )
         )
-      case Org(orgName, identifier) =>
+      case Editor(orgName, identifier) =>
         Logger[F].info(s"$identifier deleted blueprint ${blueprint.id}.")
     }
 

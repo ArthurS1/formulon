@@ -11,7 +11,7 @@ class ReadBlueprints[F[_]: Functor](repositories: Repositories[F]) {
   def execute(role: Role): F[List[Entity[Blueprint]]] =
     role match {
       case Admin() => repositories.blueprint.getAll()
-      case Org(orgName, identifier) =>
+      case Editor(orgName, identifier) =>
         repositories.blueprint
           .getAll()
           .map(
