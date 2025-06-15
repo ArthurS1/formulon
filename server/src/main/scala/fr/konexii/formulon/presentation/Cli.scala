@@ -42,10 +42,13 @@ object Cli {
         argParser(xs, conf.copy(dbUser = v))
       case (("--db-password") :: v :: xs, conf: Valid) =>
         argParser(xs, conf.copy(dbPass = v))
-      case (("--port" | "-p") :: v :: _, conf: Valid) =>
-        v.toIntOption
-          .map((port: Int) => conf.copy(port = port))
-          .getOrElse(Invalid("Server port is incorrect."))
+      case (("--port" | "-p") :: v :: xs, conf: Valid) =>
+        argParser(
+          xs,
+          v.toIntOption
+            .map((port: Int) => conf.copy(port = port))
+            .getOrElse(Invalid("Server port is incorrect."))
+        )
       case (("--db-port") :: v :: xs, conf: Valid) =>
         argParser(
           xs,
